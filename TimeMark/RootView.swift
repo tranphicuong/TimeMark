@@ -1,21 +1,20 @@
-//
-//  RootView.swift
-//  TimeMark
-//
-//  Created by cuong on 26/3/26.
-//
-
 
 import SwiftUI
 
 struct RootView: View {
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding = false
-    
+    @AppStorage("isLoggedIn") var isLoggedIn = false
+    @AppStorage("userRole") var userRole = ""
+
     var body: some View {
-        if hasSeenOnboarding {
-            LoginView()
-        } else {
+        if !hasSeenOnboarding {
             OnboardingView()
+        } else if !isLoggedIn {	
+            LoginView()
+        } else if userRole == "admin" {
+            Text("Admin Dashboard") // ← thay bằng AdminTabView() sau
+        } else {
+            EmployeeTabView() // ← đã kết nối HomeView
         }
     }
 }

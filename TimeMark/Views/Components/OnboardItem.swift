@@ -22,3 +22,46 @@ struct OnboardItem: View {
         }
     }
 }
+func profileRow(icon: String, title: String, value: String) -> some View {
+    HStack(spacing: 12) {
+        Image(systemName: icon)
+            .foregroundColor(.blue)
+            .frame(width: 25)
+        
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.gray)
+            
+            Text(value)
+                .font(.body)
+                .fontWeight(.medium)
+        }
+        
+        Spacer()
+    }
+}
+struct PrimaryOutlineButton: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding()
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.3))
+            )
+            .cornerRadius(12)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
+
+struct DangerButton: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding()
+            .foregroundColor(.red)
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(12)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+    }
+}
