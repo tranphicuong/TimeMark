@@ -65,3 +65,27 @@ struct DangerButton: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
     }
 }
+func dateCard(title: String, date: Date) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+        Text(title)
+            .font(.caption)
+            .foregroundColor(.gray)
+        
+        HStack {
+            Image(systemName: "calendar")
+                .foregroundColor(.blue)
+            
+            Text(formatDate(date))
+                .fontWeight(.medium)
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .cornerRadius(12)
+    }
+}
+func formatDate(_ date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "dd/MM/yyyy"
+    return formatter.string(from: date)
+}

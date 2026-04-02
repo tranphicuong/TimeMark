@@ -299,7 +299,7 @@ struct HomeView: View {
                 }
             }
             Spacer()
-            NavigationLink(destination: Text("Gửi yêu cầu nghỉ phép")) {
+            NavigationLink(destination: LeaveRequestView()) {
                 HStack(spacing: 6) {
                     Image(systemName: "doc.text.fill")
                         .font(.caption)
