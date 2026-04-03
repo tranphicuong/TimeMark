@@ -12,9 +12,10 @@ struct RootView: View {
         } else if !isLoggedIn {	
             LoginView()
         } else if userRole == "admin" {
-            Text("Admin Dashboard") // ← thay bằng AdminTabView() sau
+            AdminTabView()
         } else {
             EmployeeTabView() // ← đã kết nối HomeView
         }
     }
 }
+
