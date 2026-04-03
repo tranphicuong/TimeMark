@@ -12,7 +12,7 @@ import CoreLocation
 struct HomeView: View {
 
     // MARK: - State
-    @AppStorage("userName") var userName = "Minh Phan"
+    @AppStorage("userName") var userName = "Trần Phi Cường"
     @State private var currentTime = Date()
     @State private var checkInTime: Date? = nil
     @State private var checkOutTime: Date? = nil

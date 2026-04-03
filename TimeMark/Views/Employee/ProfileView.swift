@@ -1,103 +1,143 @@
-
 import SwiftUI
 
 struct ProfileView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: 32) {  // Tăng spacing để thoáng hơn
                 
-                // MARK: Avatar lớn
-                ZStack {
-                    Circle()
-                        .stroke(Color.blue, lineWidth: 5)
-                        .frame(width: 150, height: 150)
-                    
-                    Image("avatar")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 140, height: 140)
-                        .clipShape(Circle())
-                    
-                    // icon tick
-                    VStack {
-                        Spacer()
-                        HStack {
+                // MARK: - Avatar Section
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.blue.opacity(0.2), lineWidth: 8)
+                            .frame(width: 160, height: 160)
+                        
+                        Image("avatar")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 148, height: 148)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        
+                        // Verified badge
+                        VStack {
                             Spacer()
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(.blue)
-                                .background(Color.white)
-                                .clipShape(Circle())
+                            HStack {
+                                Spacer()
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.blue)
+                                    .background(
+                                        Circle()
+                                            .fill(Color.white)
+                                            .frame(width: 34, height: 34)
+                                    )
+                                    .shadow(radius: 2)
+                            }
                         }
+                        .frame(width: 160, height: 160)
                     }
-                    .frame(width: 150, height: 150)
+                    
+                    // Name + Role
+                    VStack(spacing: 6) {
+                        Text("Trần Phi Cường")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        Text("NHÂN VIÊN THIẾT KẾ CAO CẤP")
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                            .fontWeight(.medium)
+                    }
                 }
                 .padding(.top, 20)
                 
-                // MARK: Name + Role
-                Text("Nguyễn Minh Tú")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("NHÂN VIÊN THIẾT KẾ CAO CẤP")
-                    .font(.subheadline)
-                    .foregroundColor(.blue)
-                
-                // MARK: Card Info
-                VStack(spacing: 15) {
-                    
+                // MARK: - Info Card
+                VStack(alignment: .leading, spacing: 18) {
                     profileRow(icon: "building.2.fill",
-                            title: "PHÒNG BAN",
-                            value: "Phát triển Sản phẩm (R&D)")
+                              title: "PHÒNG BAN",
+                              value: "Phát triển Sản phẩm (R&D)")
+                    
+                    Divider()
                     
                     profileRow(icon: "envelope.fill",
-                            title: "EMAIL",
-                            value: "tu.nguyen@timemark.vn")
+                              title: "EMAIL",
+                              value: "tu.nguyen@timemark.vn")
+                    
+                    // Có thể thêm nhiều row khác sau này (SĐT, Ngày vào làm, v.v.)
                 }
-                .padding()
+                .padding(20)
                 .background(Color(.systemGray6))
-                .cornerRadius(20)
-                .padding(.horizontal)
+                .cornerRadius(24)           // Bo tròn lớn hơn, hiện đại hơn
+                .padding(.horizontal, 20)
                 
-                // MARK: Change Password
-                Button {
-                    print("Đổi mật khẩu")
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Đổi mật khẩu")
-                            .fontWeight(.medium)
+                // MARK: - Action Buttons
+                VStack(spacing: 14) {
+                    // Đổi mật khẩu
+                    Button {
+                        print("Đổi mật khẩu")
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Đổi mật khẩu")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                        )
+                        .cornerRadius(16)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 15)
-                            .stroke(Color.gray.opacity(0.3))
-                    )
-                    .cornerRadius(15)
-                }
-                .padding(.horizontal)
-                
-                // MARK: Logout
-                Button {
-                    print("Đăng xuất")
-                } label: {
-                    HStack {
-                        Image(systemName: "arrow.right.square")
-                        Text("Đăng xuất")
-                            .fontWeight(.bold)
+                    
+                    // Đăng xuất
+                    Button(role: .destructive) {
+                        print("Đăng xuất")
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.right.square")
+                            Text("Đăng xuất")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.red.opacity(0.08))
+                        .foregroundColor(.red)
+                        .cornerRadius(16)
                     }
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(15)
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
                 
-                Spacer()
+                Spacer(minLength: 40)
             }
+        }
+        .navigationTitle("Hồ sơ")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    // MARK: - Reusable Row
+    private func profileRow(icon: String, title: String, value: String) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(.blue)
+                .frame(width: 28)
+            
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fontWeight(.medium)
+                
+                Text(value)
+                    .font(.body)
+                    .fontWeight(.medium)
+            }
+            
+            Spacer()
         }
     }
 }

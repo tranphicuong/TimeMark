@@ -2,202 +2,209 @@ import SwiftUI
 
 struct NotificationView: View {
     
-    @State private var selectedTab = 0
+    @State private var selectedTab = 0  // 0: Tất cả, 1: Chưa đọc, 2: Hệ thống
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                
-                // HEADER
-                HStack {
-                    Image(systemName: "square.grid.2x2.fill")
-                        .foregroundColor(.blue)
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
                     
-                    Spacer()
+                    // MARK: - FILTER TABS (giống style HistoryView)
+                    HStack(spacing: 12) {
+                        ForEach(0..<3, id: \.self) { index in
+                            filterButton(title: titles[index], index: index)
+                        }
+                    }
+                    .padding(.horizontal)
                     
-                    Text("TimeMark")
-                        .font(.headline)
-                        .foregroundColor(.blue)
+                    // MARK: - HÔM NAY
+                    sectionTitle("HÔM NAY")
                     
-                    Spacer()
+                    VStack(spacing: 16) {
+                        notificationItem(
+                            icon: "checkmark.circle.fill",
+                            iconColor: .green,
+                            title: "Check-in thành công",
+                            desc: "Bạn đã chấm công vào làm lúc 08:00 sáng tại văn phòng Quận 1.",
+                            time: "08:00 AM"
+                        )
+                        
+                        notificationItemWithButton(
+                            icon: "exclamationmark.circle.fill",
+                            iconColor: .orange,
+                            title: "Nhắc chưa check-in",
+                            desc: "Đã quá 15 phút so với giờ bắt đầu, vui lòng thực hiện check-in ngay.",
+                            time: "08:15 AM"
+                        )
+                    }
+                    .padding(.horizontal)
                     
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.orange)
+                    // MARK: - HÔM QUA
+                    sectionTitle("HÔM QUA")
+                    
+                    VStack(spacing: 16) {
+                        notificationItem(
+                            icon: "clock.fill",
+                            iconColor: .gray,
+                            title: "Check-out thành công",
+                            desc: "Ca làm việc của bạn đã kết thúc. Hẹn gặp lại vào ngày mai!",
+                            time: "17:30 PM"
+                        )
+                        
+                        notificationItem(
+                            icon: "checkmark.circle.fill",
+                            iconColor: .green,
+                            title: "Check-in thành công",
+                            desc: "Bạn đã bắt đầu ca làm việc sớm hơn 5 phút. Điểm cộng cho sự chuyên cần!",
+                            time: "07:55 AM"
+                        )
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer(minLength: 40)
                 }
-                .padding(.horizontal)
-                
-                // TITLE
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Thông báo")
-                        .font(.title)
-                        .bold()
-                    
-                    Text("Cập nhật hoạt động mới nhất của bạn")
-                        .foregroundColor(.gray)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
-                
-                // FILTER
-                HStack(spacing: 10) {
-                    filterButton("Tất cả", index: 0)
-                    filterButton("Chưa đọc", index: 1)
-                    filterButton("Hệ thống", index: 2)
-                }
-                .padding(.horizontal)
-                
-                // TODAY
-                sectionTitle("HÔM NAY")
-                
-                VStack(spacing: 12) {
-                    
-                    notificationItem(
-                        icon: "checkmark",
-                        iconColor: .green,
-                        title: "Check-in thành công",
-                        desc: "Bạn đã chấm công vào làm lúc 08:00 sáng tại văn phòng Quận 1.",
-                        time: "08:00 AM"
-                    )
-                    
-                    notificationItemWithButton(
-                        icon: "exclamationmark",
-                        iconColor: .orange,
-                        title: "Nhắc chưa check-in",
-                        desc: "Đã quá 15 phút so với giờ bắt đầu, vui lòng thực hiện check-in ngay.",
-                        time: "08:15 AM"
-                    )
-                }
-                .padding(.horizontal)
-                
-                // YESTERDAY
-                sectionTitle("HÔM QUA")
-                
-                VStack(spacing: 12) {
-                    
-                    notificationItem(
-                        icon: "clock",
-                        iconColor: .gray,
-                        title: "Check-out thành công",
-                        desc: "Ca làm việc của bạn đã kết thúc. Hẹn gặp lại vào ngày mai!",
-                        time: "17:30 PM"
-                    )
-                    
-                    notificationItem(
-                        icon: "checkmark",
-                        iconColor: .green,
-                        title: "Check-in thành công",
-                        desc: "Bạn đã bắt đầu ca làm việc sớm hơn 5 phút. Điểm cộng cho sự chuyên cần!",
-                        time: "07:55 AM"
-                    )
-                }
-                .padding(.horizontal)
-                
-                Spacer(minLength: 30)
+                .padding(.top, 8)
             }
+            .background(Color(.systemGray6).ignoresSafeArea())
+            .navigationTitle("Thông báo")
+            .navigationBarTitleDisplayMode(.large)
         }
-        .background(Color(.systemGray6).ignoresSafeArea())
     }
-}
-
-// MARK: - COMPONENTS
-
-func filterButton(_ title: String, index: Int) -> some View {
-    @State var selected = false
     
-    return Text(title)
-        .font(.subheadline)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(index == 0 ? Color.blue : Color(.systemGray5))
-        .foregroundColor(index == 0 ? .white : .black)
-        .cornerRadius(20)
-}
-
-func sectionTitle(_ title: String) -> some View {
-    HStack {
+    private let titles = ["Tất cả", "Chưa đọc", "Hệ thống"]
+    
+    // MARK: - Filter Button (style giống filter tháng ở HistoryView)
+    private func filterButton(title: String, index: Int) -> some View {
         Text(title)
-            .font(.caption)
-            .foregroundColor(.gray)
-        Spacer()
-        Rectangle()
-            .fill(Color.gray.opacity(0.3))
-            .frame(height: 1)
-    }
-    .padding(.horizontal)
-}
-
-func notificationItem(icon: String, iconColor: Color, title: String, desc: String, time: String) -> some View {
-    HStack(alignment: .top, spacing: 12) {
-        
-        ZStack {
-            Circle()
-                .fill(iconColor.opacity(0.2))
-                .frame(width: 40, height: 40)
-            
-            Image(systemName: icon)
-                .foregroundColor(iconColor)
-        }
-        
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .bold()
-                Spacer()
-                Text(time)
-                    .font(.caption)
-                    .foregroundColor(.gray)
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(selectedTab == index ? Color.blue : Color(.systemGray5))
+            .foregroundColor(selectedTab == index ? .white : .primary)
+            .cornerRadius(12)
+            .onTapGesture {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = index
+                }
             }
-            
-            Text(desc)
-                .font(.subheadline)
-                .foregroundColor(.gray)
-        }
     }
-    .padding()
-    .background(Color.white)
-    .cornerRadius(16)
-}
-
-func notificationItemWithButton(icon: String, iconColor: Color, title: String, desc: String, time: String) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-        
-        HStack(alignment: .top, spacing: 12) {
+    
+    // MARK: - Section Title (giống HistoryView)
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.headline)
+            .fontWeight(.semibold)
+            .foregroundColor(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+    }
+    
+    // MARK: - Normal Notification Item
+    private func notificationItem(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        desc: String,
+        time: String
+    ) -> some View {
+        HStack(alignment: .top, spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(iconColor.opacity(0.2))
-                    .frame(width: 40, height: 40)
+                    .fill(iconColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
                 
                 Image(systemName: icon)
+                    .font(.title3)
                     .foregroundColor(iconColor)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
                     Text(title)
-                        .bold()
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
                     Spacer()
+                    
                     Text(time)
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 
                 Text(desc)
                     .font(.subheadline)
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
+                    .lineSpacing(3)
             }
         }
-        
-        Button("Check-in ngay") {
-            print("Go check-in")
-        }
-        .foregroundColor(.blue)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.blue.opacity(0.1))
-        .cornerRadius(10)
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
     }
-    .padding()
-    .background(Color.white)
-    .cornerRadius(16)
+    
+    // MARK: - Notification Item with Button
+    private func notificationItemWithButton(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        desc: String,
+        time: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundColor(iconColor)
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(title)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        Spacer()
+                        
+                        Text(time)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text(desc)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineSpacing(3)
+                }
+            }
+            
+            Button {
+                print("Check-in ngay tapped")
+            } label: {
+                Text("Check-in ngay")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue)
+                    .cornerRadius(14)
+            }
+        }
+        .padding(16)
+        .background(Color.white)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
+    }
+}
+
+#Preview {
+    NotificationView()
 }

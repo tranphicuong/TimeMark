@@ -1,14 +1,13 @@
-//
-//  TimeMarkApp.swift
-//  TimeMark
-//
-//  Created by cuong on 23/3/26.
-//
-
+import Firebase
 import SwiftUI
 
 @main
 struct TimeMarkApp: App {
+    init() {
+        FirebaseApp.configure()
+        
+
+    }
     var body: some Scene {
         WindowGroup {
             RootView()
