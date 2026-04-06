@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProfileView: View {
-    
+    @StateObject private var authVM = AuthViewModel.shared
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {  // Tăng spacing để thoáng hơn
@@ -95,7 +95,7 @@ struct ProfileView: View {
                     
                     // Đăng xuất
                     Button(role: .destructive) {
-                        print("Đăng xuất")
+                        authVM.logout()
                     } label: {
                         HStack {
                             Image(systemName: "arrow.right.square")
