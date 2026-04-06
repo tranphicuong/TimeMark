@@ -20,6 +20,11 @@ struct AdminTabView: View {
                     Image(systemName: "calendar.badge.checkmark")
                     Text("Phê duyệt")
                 }
+            AdminSettingsView()
+                .tabItem{
+                    Image(systemName: "gearshape.fill")
+                    Text("cài đặt")
+                }
         }
         .accentColor(.blue)
 
