@@ -94,7 +94,7 @@ class AuthViewModel: ObservableObject {
     func fetchUserInfo(uid: String) {
     
         
-        db.collection("user").document(uid).getDocument { [weak self] snapshot, error in
+        db.collection("users").document(uid).getDocument { [weak self] snapshot, error in
             guard let self = self else { return }
 
             DispatchQueue.main.async {
