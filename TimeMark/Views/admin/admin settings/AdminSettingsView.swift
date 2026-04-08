@@ -41,7 +41,10 @@ struct AdminSettingsView: View {
                         }
                         
                         Divider().padding(.leading, 70)
-                        SettingRow(icon: "rectangle.portrait.and.arrow.right", iconColor: .red, iconBgColor: Color.red.opacity(0.1), title: "Đăng xuất", isDestructive: true)
+                        NavigationLink(destination: LoginView())
+                        {
+                            SettingRow(icon: "rectangle.portrait.and.arrow.right", iconColor: .red, iconBgColor: Color.red.opacity(0.1), title: "Đăng xuất", isDestructive: true)
+                        }
                     }
                     .background(Color.white)
                     .cornerRadius(16)
