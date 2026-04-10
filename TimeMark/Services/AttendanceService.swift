@@ -8,17 +8,23 @@ class AttendanceService {
     private let db = Firestore.firestore()
     static let shared = AttendanceService()
     
-    // MARK: - Check-in với ảnh
-    func checkIn(location: CLLocation, faceImageBase64: String?, completion: @escaping (Bool, String) -> Void) {
+    // MARK: - Check-in
+    func checkIn(
+        location: CLLocation,
+        imgCheckinURL: String?,
+        completion: @escaping (Bool, String) -> Void
+    ) {
         guard let uid = Auth.auth().currentUser?.uid else {
             completion(false, "Chưa đăng nhập")
             return
         }
         
         let today = todayString()
+        let userRef = db.document("users/\(uid)")
         
+        // Kiểm tra đã có bản ghi hôm nay chưa
         db.collection("attendance")
-            .whereField("user_id", isEqualTo: uid)
+            .whereField("id_user", isEqualTo: userRef)
             .whereField("date", isEqualTo: today)
             .getDocuments { [weak self] snapshot, error in
                 guard let self = self else { return }
@@ -34,14 +40,16 @@ class AttendanceService {
                 }
                 
                 let data: [String: Any] = [
-                    "user_id": uid,
+                    "id_user": userRef,
                     "date": today,
                     "check_in": Timestamp(date: Date()),
                     "check_out": NSNull(),
-                    "status": "present",
-                    "latitude": location.coordinate.latitude,
-                    "longitude": location.coordinate.longitude,
-                    "face_image": faceImageBase64 ?? "",
+                    "img_checkin": imgCheckinURL ?? "",
+                    "img_checkout": "",
+                    "status": "normal",
+                    "early_minutes": NSNull(),
+                    "late_minutes": NSNull(),
+                    "overtime_minutes": NSNull(),
                     "created_at": Timestamp(date: Date())
                 ]
                 
@@ -55,16 +63,21 @@ class AttendanceService {
             }
     }
     
-    func checkOut(completion: @escaping (Bool, String) -> Void) {
+    // MARK: - Check-out
+    func checkOut(
+        imgCheckoutURL: String?,
+        completion: @escaping (Bool, String) -> Void
+    ) {
         guard let uid = Auth.auth().currentUser?.uid else {
             completion(false, "Chưa đăng nhập")
             return
         }
         
         let today = todayString()
+        let userRef = db.document("users/\(uid)")
         
         db.collection("attendance")
-            .whereField("user_id", isEqualTo: uid)
+            .whereField("id_user", isEqualTo: userRef)
             .whereField("date", isEqualTo: today)
             .getDocuments { snapshot, error in
                 if let error = error {
@@ -82,7 +95,15 @@ class AttendanceService {
                     return
                 }
                 
-                doc.reference.updateData(["check_out": Timestamp(date: Date())]) { error in
+                var updateData: [String: Any] = [
+                    "check_out": Timestamp(date: Date())
+                ]
+                
+                if let url = imgCheckoutURL {
+                    updateData["img_checkout"] = url
+                }
+                
+                doc.reference.updateData(updateData) { error in
                     if let error = error {
                         completion(false, "Check-out thất bại")
                     } else {

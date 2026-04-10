@@ -15,9 +15,22 @@
 		5E37FBBC2F71B2AF0011A51D /* TimeMark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeMark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		184D0FAD2F894D60000ADB7E /* Exceptions for "TimeMark" folder in "TimeMark" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5E37FBBB2F71B2AF0011A51D /* TimeMark */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E37FBBE2F71B2AF0011A51D /* TimeMark */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				184D0FAD2F894D60000ADB7E /* Exceptions for "TimeMark" folder in "TimeMark" target */,
+			);
 			path = TimeMark;
 			sourceTree = "<group>";
 		};
@@ -260,13 +273,15 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TimeMark/Preview Content\"";
-				DEVELOPMENT_TEAM = J86784URDR;
+				DEVELOPMENT_TEAM = P237DPJTR8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TimeMark/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Ứng dụng cần truy cập camera để chụp ảnh check-in";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Ứng dụng cần sử dụng Face ID để xác thực khi chấm công";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "App cần vị trí để chấm công";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = NSPhotoLibraryUsageDescription;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -302,13 +317,15 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TimeMark/Preview Content\"";
-				DEVELOPMENT_TEAM = J86784URDR;
+				DEVELOPMENT_TEAM = P237DPJTR8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TimeMark/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Ứng dụng cần truy cập camera để chụp ảnh check-in";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Ứng dụng cần sử dụng Face ID để xác thực khi chấm công";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "App cần vị trí để chấm công";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = NSPhotoLibraryUsageDescription;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

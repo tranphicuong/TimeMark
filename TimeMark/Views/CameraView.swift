@@ -1,11 +1,24 @@
 import SwiftUI
+import UIKit
 
-struct CameraView: UIViewControllerRepresentable {
+struct CameraView: View {
     var onImageCaptured: (UIImage?) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        CameraPicker(onImageCaptured: onImageCaptured, dismiss: dismiss)
+    }
+}
+
+struct CameraPicker: UIViewControllerRepresentable {
+    var onImageCaptured: (UIImage?) -> Void
+    var dismiss: DismissAction
     
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
+        picker.cameraDevice = .front         
+        picker.allowsEditing = false
         picker.delegate = context.coordinator
         return picker
     }
@@ -17,9 +30,9 @@ struct CameraView: UIViewControllerRepresentable {
     }
     
     class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let parent: CameraView
+        let parent: CameraPicker
         
-        init(_ parent: CameraView) {
+        init(_ parent: CameraPicker) {
             self.parent = parent
         }
         
