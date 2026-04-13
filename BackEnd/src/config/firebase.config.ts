@@ -9,6 +9,7 @@ if (!admin.apps.length) {
             privateKey: process.env.FB_PRIVATE_KEY?.replace(/\\n/g, "\n"),
         }),
     });
+    console.log(process.env.FB_PROJECT_ID);
 }
 
 export const adminAuth = admin.auth();
