@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E0E54AE2F8D331F0013CC95 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 5E0E54AD2F8D331F0013CC95 /* FirebaseMessaging */; };
 		5E8898B52F800669004FD72F /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 5E8898B42F800669004FD72F /* FirebaseAuth */; };
 		5E8898B72F800669004FD72F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 5E8898B62F800669004FD72F /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -41,6 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E0E54AE2F8D331F0013CC95 /* FirebaseMessaging in Frameworks */,
 				5E8898B52F800669004FD72F /* FirebaseAuth in Frameworks */,
 				5E8898B72F800669004FD72F /* FirebaseFirestore in Frameworks */,
 			);
@@ -87,6 +89,7 @@
 			packageProductDependencies = (
 				5E8898B42F800669004FD72F /* FirebaseAuth */,
 				5E8898B62F800669004FD72F /* FirebaseFirestore */,
+				5E0E54AD2F8D331F0013CC95 /* FirebaseMessaging */,
 			);
 			productName = TimeMark;
 			productReference = 5E37FBBC2F71B2AF0011A51D /* TimeMark.app */;
@@ -273,7 +276,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TimeMark/Preview Content\"";
-				DEVELOPMENT_TEAM = P237DPJTR8;
+				DEVELOPMENT_TEAM = J86784URDR;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -317,7 +320,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TimeMark/Preview Content\"";
-				DEVELOPMENT_TEAM = P237DPJTR8;
+				DEVELOPMENT_TEAM = J86784URDR;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -387,6 +390,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5E0E54AD2F8D331F0013CC95 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5E8898B32F800669004FD72F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		5E8898B42F800669004FD72F /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5E8898B32F800669004FD72F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

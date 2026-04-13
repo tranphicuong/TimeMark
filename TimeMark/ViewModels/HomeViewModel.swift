@@ -25,35 +25,37 @@ class HomeViewModel: ObservableObject {
     let locationService = LocationService.shared
     private let attendanceService = AttendanceService.shared
     private let cloudinaryService = CloudinaryService.shared
+    private let notificationService = NotificationService.shared
+    
+    private var attendanceListener: ListenerRegistration?   // ← Realtime
     
     static let shared = HomeViewModel()
     
     // MARK: - Init
     init() {
-        loadTodayAttendance()
+        startRealtimeAttendanceListener()
     }
     
-    // MARK: - Load từ Firestore (Quan trọng nhất)
-    func loadTodayAttendance() {
+    // MARK: - Realtime Listener (Quan trọng)
+    private func startRealtimeAttendanceListener() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
         let today = todayString()
         let userRef = Firestore.firestore().document("users/\(uid)")
         
-        Firestore.firestore().collection("attendance")
+        attendanceListener = Firestore.firestore().collection("attendance")
             .whereField("id_user", isEqualTo: userRef)
             .whereField("date", isEqualTo: today)
-            .getDocuments { [weak self] snapshot, error in
+            .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
                 
+                if let error = error {
+                    print("Realtime attendance error: \(error.localizedDescription)")
+                    return
+                }
+                
                 DispatchQueue.main.async {
-                    if let error = error {
-                        print("Lỗi load attendance: \(error.localizedDescription)")
-                        return
-                    }
-                    
                     guard let doc = snapshot?.documents.first else {
-                        // Không có record hôm nay
                         self.resetDailyState()
                         return
                     }
@@ -73,34 +75,13 @@ class HomeViewModel: ObservableObject {
                     } else {
                         self.isCheckedOut = false
                     }
-                    
-                    // Đồng bộ lại vào UserDefaults
-                    self.saveDailyState()
                 }
             }
     }
     
-    // MARK: - Lưu cache vào UserDefaults
-    private func saveDailyState() {
-        let today = todayString()
-        UserDefaults.standard.set(today, forKey: "savedCheckInDate")
-        UserDefaults.standard.set(isCheckedIn, forKey: "isCheckedIn")
-        UserDefaults.standard.set(isCheckedOut, forKey: "isCheckedOut")
-        
-        if let time = checkInTime {
-            UserDefaults.standard.set(time.timeIntervalSince1970, forKey: "checkInTime")
-        }
-        if let time = checkOutTime {
-            UserDefaults.standard.set(time.timeIntervalSince1970, forKey: "checkOutTime")
-        }
-    }
-    
-    private func resetDailyState() {
-        isCheckedIn = false
-        isCheckedOut = false
-        checkInTime = nil
-        checkOutTime = nil
-        UserDefaults.standard.removeObject(forKey: "savedCheckInDate")
+    // MARK: - Cleanup
+    deinit {
+        attendanceListener?.remove()
     }
     
     private func todayString() -> String {
@@ -109,7 +90,14 @@ class HomeViewModel: ObservableObject {
         return f.string(from: Date())
     }
     
-    // MARK: - Handle Check-in / Check-out Tap
+    private func resetDailyState() {
+        isCheckedIn = false
+        isCheckedOut = false
+        checkInTime = nil
+        checkOutTime = nil
+    }
+    
+    // MARK: - Handle Tap
     func handleCheckInTap() {
         guard locationService.isAuthorized else {
             locationService.requestLocationPermission()
@@ -146,33 +134,33 @@ class HomeViewModel: ObservableObject {
         }
         
         isLoading = true
-      
+     
+        
         cloudinaryService.uploadAttendanceImage(image: image) { [weak self] success, imageURL in
             guard let self = self else { return }
-            
-            if !success || imageURL == nil {
+            guard success, let url = imageURL else {
                 self.isLoading = false
                 self.showMessage("Upload ảnh thất bại!", success: false)
                 return
             }
             
             if self.cameraMode == .checkIn {
-                self.attendanceService.checkIn(location: location, imgCheckinURL: imageURL) { success, message in
+                self.attendanceService.checkIn(location: location, imgCheckinURL: url) { success, message in
                     DispatchQueue.main.async {
                         self.isLoading = false
                         self.showMessage(message, success: success)
                         if success {
-                            self.loadTodayAttendance()  // Load lại từ Firestore
+                            self.notificationService.notifyCheckIn()
                         }
                     }
                 }
             } else {
-                self.attendanceService.checkOut(imgCheckoutURL: imageURL) { success, message in
+                self.attendanceService.checkOut(imgCheckoutURL: url) { success, message in
                     DispatchQueue.main.async {
                         self.isLoading = false
                         self.showMessage(message, success: success)
                         if success {
-                            self.loadTodayAttendance()  // Load lại từ Firestore
+                            self.notificationService.notifyCheckOut()
                         }
                     }
                 }
