@@ -23,6 +23,21 @@ data{
     
 }
 */
+
+/*
+id_member
+name
+email
+id_position
+id_department
+position
+department
+isAcitve 
+isDelted
+phone
+created_at
+
+*/
 export const createUserService = async (data: {
     email: string;
     password: string;
@@ -134,28 +149,46 @@ export const toggleUserStatusService = async (
 export const getAllUsersService = async () => {
     const snapshot = await adminDb.collection("users").get();
 
-    const users: any[] = [];
+    const users = await Promise.all(
+        snapshot.docs.map(async (doc) => {
+            const data = doc.data();
 
-    snapshot.forEach((doc) => {
-        const data = doc.data();
+            // ❌ bỏ admin
+            if (data.id_role?.id === "admin") return null;
 
-        // ❌ bỏ admin (FIX)
-        if (data.id_role?.id === "admin") return;
+            // ❌ bỏ user đã bị xóa
+            if (data.isDeleted) return null;
 
-        // ❌ bỏ user đã bị xóa
-        if (data.isDeleted) return;
+            // 🔥 lấy position + department
+            const [posSnap, depSnap] = await Promise.all([
+                data.id_position?.get(),
+                data.id_department?.get(),
+            ]);
 
-        users.push({
-            uid: doc.id,
-            email: data.email,
-            name: data.name,
-            phone: data.phone,
-            id_role: data.id_role?.path, // cho dễ debug
-            isActive: data.isActive,
-        });
-    });
+            return {
+                uid: doc.id,
+                id_member: data.id_member,
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
 
-    return users;
+                // 🔥 reference id
+                id_position: data.id_position?.id,
+                id_department: data.id_department?.id,
+
+                // 🔥 name thật
+                position: posSnap?.data()?.name || null,
+                department: depSnap?.data()?.name || null,
+
+                isActive: data.isActive,
+                isDeleted: data.isDeleted,
+                created_at: data.created_at,
+            };
+        })
+    );
+
+    // lọc null
+    return users.filter((u) => u !== null);
 };
 // 🔹 xóa tài khoản (chỉ xóa Auth, giữ Firestore)
 export const deleteUserService = async (uid: string) => {
