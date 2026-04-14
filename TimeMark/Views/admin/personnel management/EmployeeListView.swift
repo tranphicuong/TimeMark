@@ -6,13 +6,12 @@ struct EmployeeListView: View {
     // 👇 QUAN TRỌNG: chỉ lưu 1 thằng đang mở
     @State private var openedEmployeeID: String? = nil
     
-    @State private var employees = [
-        Employee(id: "1", name: "Nguyễn Hoàng Nam", role: "Kỹ thuật", employeeID: "TM-0911", status: .active, imageName: "person.circle.fill", checkInTime: nil),
-        Employee(id: "2", name: "Trần Thanh Vân", role: "Kế toán", employeeID: "TM-0755", status: .onLeave, imageName: "person.circle.fill", checkInTime: nil),
-        Employee(id: "3", name: "Phạm Minh Đức", role: "Marketing", employeeID: "TM-1022", status: .locked, imageName: "person.circle.fill", checkInTime: nil),
-        Employee(id: "4", name: "Võ Thị Hồng", role: "Thiết kế", employeeID: "TM-0648", status: .active, imageName: "person.circle.fill", checkInTime: nil)
-    ]
-    
+    // ❌ BỎ DATA FAKE
+
+
+    // ✅ DÙNG VIEWMODEL
+    @StateObject private var viewModel = EmployeeViewModel()
+
     var body: some View {
         VStack(spacing: 0) {
             
@@ -39,7 +38,8 @@ struct EmployeeListView: View {
                     Text("Quản lý nhân viên")
                         .font(.title.bold())
                     
-                    Text("Tổng cộng \(employees.count) nhân viên")
+                    // ✅ SỬA COUNT
+                    Text("Tổng cộng \(viewModel.employees.count) nhân viên")
                         .foregroundColor(.gray)
                 }
                 
@@ -54,11 +54,10 @@ struct EmployeeListView: View {
                     }
                     .padding()
                     .background(Color(.systemGray6))
-                    .cornerRadius(15) // Bo góc tròn hơn một chút theo ảnh
+                    .cornerRadius(15)
                     
-                    // Nút Filter (Căn lề phải)
+                    // Nút Filter
                     Button(action: {
-                        // Hành động khi nhấn lọc
                     }) {
                         Image(systemName: "line.3.horizontal.decrease")
                             .font(.system(size: 20, weight: .medium))
@@ -69,10 +68,14 @@ struct EmployeeListView: View {
                     }
                 }
             }
-            .padding(.horizontal)            // List
+            .padding(.horizontal)
+            
+            // List
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach(employees) { employee in
+                    
+                    // ✅ SỬA FOR EACH
+                    ForEach(viewModel.employees) { employee in
                         EmployeeCard(
                             employee: employee,
                             openedID: $openedEmployeeID,
@@ -83,7 +86,8 @@ struct EmployeeListView: View {
                                 print("Lock \(employee.name)")
                             },
                             onDelete: {
-                                employees.removeAll { $0.id == employee.id }
+                                // ❗ TẠM: xóa UI (chưa gọi API)
+                                viewModel.employees.removeAll { $0.id == employee.id }
                             }
                         )
                     }
@@ -103,8 +107,13 @@ struct EmployeeListView: View {
                         .shadow(radius: 4)
                 }
                 .padding(.trailing, 20)
-                .padding(.bottom, 10) }
-            
+                .padding(.bottom, 10)
+            }
+        }
+        
+        // ✅ GỌI API Ở ĐÂY
+        .onAppear {
+            viewModel.fetchEmployees()
         }
     }
 }

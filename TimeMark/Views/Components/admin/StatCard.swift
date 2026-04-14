@@ -1,5 +1,5 @@
 import SwiftUI
-enum EmployeeStatus: String {
+ enum EmployeeStatus: String {
     case active = "HOẠT ĐỘNG"
     case onLeave = "NGHỈ PHÉP"
     case locked = "ĐÃ KHÓA"
