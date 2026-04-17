@@ -1,5 +1,6 @@
 
 
+
 import SwiftUI
 
 struct HomeView: View {
@@ -8,6 +9,7 @@ struct HomeView: View {
     @AppStorage("userName") var userName = "Nhân viên"
 
     @State private var currentTime = Date()
+    @AppStorage("avatarURL") var avatarURL: String = ""
     @State private var remainingLeaveDays = 12
 
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -54,7 +56,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Check-in Card (toàn bộ card nhấn được)
+    // MARK: - Check-in Card
     var checkInCard: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
@@ -151,12 +153,17 @@ struct HomeView: View {
         HStack {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 46, height: 46)
-                    Image(systemName: "person.fill")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 20))
+                    AvatarView(
+                        size: 46,
+                        avatarURL: avatarURL
+                    )
+                }
+                .onAppear {
+                    UserService.shared.listenUser { url in
+                        if let url = url {
+                            avatarURL = url
+                        }
+                    }
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("XIN CHÀO,")

@@ -2,8 +2,10 @@ import SwiftUI
 
 struct NotificationView: View {
     
-    @StateObject private var service = NotificationService.shared 
+    @StateObject private var service = NotificationService.shared
     @State private var selectedTab = 0
+    @State private var showDeleteAllConfirm = false
+    @State private var itemToDelete: String? = nil
     private let tabs = ["Tất cả", "Chưa đọc", "Hệ thống"]
     
     var filtered: [NotificationItem] {
@@ -16,79 +18,98 @@ struct NotificationView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Filter tabs
-                    HStack(spacing: 10) {
-                        ForEach(0..<3, id: \.self) { i in
-                            Button {
-                                withAnimation(.easeInOut(duration: 0.2)) { selectedTab = i }
-                            } label: {
-                                Text(tabs[i])
-                                    .font(.subheadline).fontWeight(.medium)
-                                    .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                    .background(selectedTab == i ? Color.blue : Color(.systemGray5))
-                                    .foregroundColor(selectedTab == i ? .white : .primary)
-                                    .cornerRadius(12)
-                            }
+            VStack(spacing: 0) {
+                // Filter tabs
+                HStack(spacing: 10) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = i }
+                        } label: {
+                            Text(tabs[i])
+                                .font(.subheadline).fontWeight(.medium)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(selectedTab == i ? Color.blue : Color(.systemGray5))
+                                .foregroundColor(selectedTab == i ? .white : .primary)
+                                .cornerRadius(12)
                         }
                     }
-                    .padding(.horizontal)
-                    
-                    if filtered.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "bell.slash").font(.system(size: 44)).foregroundColor(.gray.opacity(0.4))
-                            Text("Không có thông báo").font(.subheadline).foregroundColor(.gray)
-                        }
-                        .padding(.top, 100)
-                    } else {
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                
+                if filtered.isEmpty {
+                    emptyView
+                } else {
+                    List {
                         let grouped = Dictionary(grouping: filtered) {
                             Calendar.current.startOfDay(for: $0.createdAt)
                         }
+                        
                         ForEach(grouped.keys.sorted(by: >), id: \.self) { date in
-                            VStack(alignment: .leading, spacing: 12) {
+                            Section(header:
                                 Text(sectionLabel(date))
-                                    .font(.headline).fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal)
-                                
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                    .textCase(.uppercase)
+                                    .padding(.top, 8)
+                            ) {
                                 ForEach(grouped[date] ?? []) { item in
                                     notifRow(item)
-                                        .padding(.horizontal)
-                                        .onTapGesture {
-                                            if !item.isRead {
-                                                service.markAsRead(item.id)
-                                            }
-                                        }
+                                        .listRowSeparator(.hidden)
+                                        .listRowBackground(Color.white)
                                 }
                             }
                         }
                     }
-                    Spacer(minLength: 40)
+                    .listStyle(.plain)
                 }
-                .padding(.top, 8)
             }
             .background(Color(.systemGray6).ignoresSafeArea())
             .navigationTitle("Thông báo")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 if service.unreadCount > 0 {
-                    ToolbarItem(placement: .navigationBarTrailing) {
+                    ToolbarItem(placement: .navigationBarLeading) {
                         Button("Đọc hết") { service.markAllAsRead() }
-                            .font(.subheadline).foregroundColor(.blue)
+                    }
+                }
+                if !service.notifications.isEmpty {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(role: .destructive) {
+                            showDeleteAllConfirm = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
                     }
                 }
             }
-            .onAppear {
-                service.startListening()
+            // Xác nhận xóa tất cả
+            .confirmationDialog("Xoá tất cả thông báo?", isPresented: $showDeleteAllConfirm) {
+                Button("Xoá tất cả", role: .destructive) {
+                    service.deleteAllNotifications()
+                }
+                Button("Huỷ", role: .cancel) {}
             }
-            .onDisappear {
-                service.stopListening()
+            // Xác nhận xóa từng cái
+            .confirmationDialog("Xoá thông báo này?", isPresented: Binding(
+                get: { itemToDelete != nil },
+                set: { if !$0 { itemToDelete = nil }}
+            )) {
+                Button("Xoá", role: .destructive) {
+                    if let id = itemToDelete {
+                        service.deleteNotification(id)
+                        itemToDelete = nil
+                    }
+                }
+                Button("Huỷ", role: .cancel) { itemToDelete = nil }
             }
+            .onAppear { service.startListening() }
+            .onDisappear { service.stopListening() }
         }
     }
     
-    // MARK: - Notification Row
+    // MARK: - Row với Swipe Delete
     @ViewBuilder
     func notifRow(_ item: NotificationItem) -> some View {
         HStack(alignment: .top, spacing: 14) {
@@ -109,32 +130,37 @@ struct NotificationView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineSpacing(3)
-                
-                if item.type == "late_reminder" && !item.isRead {
-                    Button { service.markAsRead(item.id) } label: {
-                        Text("Check-in ngay")
-                            .font(.subheadline).fontWeight(.semibold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(Color.blue)
-                            .cornerRadius(12)
-                    }
-                    .padding(.top, 4)
-                }
             }
             
             if !item.isRead {
-                Circle().fill(Color.blue).frame(width: 8, height: 8).padding(.top, 4)
+                Circle().fill(Color.blue).frame(width: 8, height: 8).padding(.top, 6)
             }
         }
-        .padding(16)
-        .background(item.isRead ? Color.white : Color.blue.opacity(0.03))
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
+        .onTapGesture {
+               if !item.isRead {
+                   service.markAsRead(item.id)
+               }
+           }
+        .padding(.vertical, 8)
+
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                itemToDelete = item.id
+            } label: {
+                Label("Xoá", systemImage: "trash.fill")
+            }
+        }
     }
     
-    // MARK: - Helper Functions
+    var emptyView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "bell.slash").font(.system(size: 48)).foregroundColor(.gray.opacity(0.4))
+            Text("Không có thông báo").font(.subheadline).foregroundColor(.gray)
+        }
+        .frame(maxHeight: .infinity)
+    }
+    
+    // MARK: - Helpers
     func iconName(_ type: String) -> String {
         switch type {
         case "checkin": return "checkmark.circle.fill"

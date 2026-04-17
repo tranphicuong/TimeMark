@@ -10,7 +10,7 @@ class CloudinaryService {
     // MARK: - Upload ảnh chấm công
     func uploadAttendanceImage(
         image: UIImage,
-        completion: @escaping (Bool, String?) -> Void   // (success, imageURL)
+        completion: @escaping (Bool, String?) -> Void  
     ) {
         upload(image: image, preset: CloudinaryConfig.attendancePreset, completion: completion)
     }

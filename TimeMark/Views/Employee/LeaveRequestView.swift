@@ -205,6 +205,3 @@ struct DateCard: View {
     }
 }
 
-#Preview {
-    LeaveRequestView()
-}

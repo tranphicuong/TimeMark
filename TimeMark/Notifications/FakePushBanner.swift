@@ -21,7 +21,7 @@ struct FakePushBanner: View {
             Spacer()
         }
         .padding()
-        .background(.blue)
+        .background(.white)
         .cornerRadius(16)
         .shadow(radius: 5)
         .padding(.horizontal)
