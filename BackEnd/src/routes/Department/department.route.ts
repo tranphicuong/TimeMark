@@ -4,7 +4,7 @@ import {
     deleteDepartmentService,
     getUsersByDepartmentService,
     updateDepartmentService
-} from "../services/derpartment.service";
+} from "../../services/Department/derpartment.service";
 
 const router = express.Router();
 

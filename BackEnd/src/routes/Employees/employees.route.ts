@@ -4,7 +4,7 @@ import {
     toggleUserStatusService,
     deleteUserService,
     getAllUsersService
-} from "../services/employees.service";
+} from "../../services/Employees/employees.service";
 
 const router = express.Router();
 

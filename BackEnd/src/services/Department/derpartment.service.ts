@@ -1,4 +1,4 @@
-import { adminDb } from "../config/firebase.config";
+import { adminDb } from "../../config/firebase.config";
 // tao phong ban
 export const createDepartmentService = async (data: {
     name: string;

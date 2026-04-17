@@ -1,4 +1,4 @@
-import { adminAuth, adminDb } from "../config/firebase.config";
+import { adminAuth, adminDb } from "../../config/firebase.config";
 // 🔹 tạo tài khoản (admin tạo)
 
 /*
