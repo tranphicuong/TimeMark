@@ -74,6 +74,7 @@ export const getUsersByDepartmentService = async (
                         uid: doc.id,
                         name: data.name,
                         email: data.email,
+                        avatarURL: data.avatarURL
                     };
                 }
             }
@@ -86,6 +87,7 @@ export const getUsersByDepartmentService = async (
                 phone: data.phone,
                 position: positionName,
                 isActive: data.isActive,
+                avatarURL: data.avatarURL
             };
         })
     );

@@ -102,7 +102,7 @@ export const createUserService = async (data: {
         id_position: positionRef,
         id_department: departmentRef,
         id_role: roleRef,
-
+        avatarURL: null,
         phone: null,
         isActive: true,
         isDeleted: false,
@@ -179,7 +179,7 @@ export const getAllUsersService = async () => {
                 // 🔥 name thật
                 position: posSnap?.data()?.name || null,
                 department: depSnap?.data()?.name || null,
-
+                avatarURL: data.avatarURL,
                 isActive: data.isActive,
                 isDeleted: data.isDeleted,
                 created_at: data.created_at,
