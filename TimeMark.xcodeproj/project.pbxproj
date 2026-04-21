@@ -17,22 +17,9 @@
 		5E37FBBC2F71B2AF0011A51D /* TimeMark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeMark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		18794A912F84149100127398 /* Exceptions for "TimeMark" folder in "TimeMark" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				models/Department.swift,
-			);
-			target = 5E37FBBB2F71B2AF0011A51D /* TimeMark */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E37FBBE2F71B2AF0011A51D /* TimeMark */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				18794A912F84149100127398 /* Exceptions for "TimeMark" folder in "TimeMark" target */,
-			);
 			path = TimeMark;
 			sourceTree = "<group>";
 		};

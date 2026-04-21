@@ -1,6 +1,6 @@
 import SwiftUI
 
-import SwiftUI
+ 
 
 struct EmployeeCard: View {
     let employee: Employee
@@ -51,7 +51,7 @@ struct EmployeeCard: View {
                 
                 VStack(alignment: .leading) {
                     Text(employee.name).bold()
-                    Text("\(employee.role) • \(employee.employeeID)")
+                    Text("\(employee.position) • \(employee.id_member)")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }

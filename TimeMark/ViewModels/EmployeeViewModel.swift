@@ -16,16 +16,28 @@ class EmployeeViewModel: ObservableObject {
             
             do {
                 let decoded = try JSONDecoder().decode(EmployeeResponse.self, from: data)
-                
+
                 let mapped = decoded.data.map { item in
-                    Employee(
+                    let status: EmployeeStatusApi
+
+                    if item.isDeleted {
+                        status = .onLeave
+                    } else if item.isActive {
+                        status = .active
+                    } else {
+                        status = .locked
+                    }
+                    return Employee(
                         id: item.uid,
+                        email: item.email,
                         name: item.name,
-                        role: "Nhân viên",
-                        employeeID: item.uid,
-                        status: item.isActive ? .active : .locked,
-                        imageName: "person.circle.fill",
-                        checkInTime: nil
+                        
+                        id_member: item.id_member,
+                        position: item.position,
+                        department: item.department,
+                        status: status,
+                        imageName: "person.circle.fill"
+
                     )
                 }
                 

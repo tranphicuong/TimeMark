@@ -18,10 +18,12 @@ enum EmployeeStatusApi: String {
 // 🔥 MODEL
 struct Employee: Identifiable {
     let id: String
+    let email: String
     let name: String
-    let role: String
-    let employeeID: String
+    let id_member: String
+    let position: String
+    let department: String
+
     let status: EmployeeStatusApi
     let imageName: String
-    let checkInTime: String?
 }
