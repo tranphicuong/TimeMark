@@ -2,8 +2,10 @@ import { adminDb } from "../../config/firebase.config";
 // tao phong ban
 export const createDepartmentService = async (data: {
     name: string;
+    icon: string;
+    iconColor: string;
 }) => {
-    const { name } = data;
+    const { name, icon, iconColor } = data;
 
     // 🔥 validate
     if (!name) {
@@ -23,6 +25,8 @@ export const createDepartmentService = async (data: {
     const docRef = await adminDb.collection("department").add({
         name,
         id_office: officeRef,
+        icon,
+        iconColor,
         created_at: new Date(),
     });
 
@@ -47,7 +51,8 @@ export const getUsersByDepartmentService = async (
     }
 
     const departmentName = departmentSnap.data()?.name || null;
-
+    const departmentIcon = departmentSnap.data()?.icon || null;
+    const departmentIconColor = departmentSnap.data()?.iconColor || null;
     const snapshot = await adminDb
         .collection("users")
         .where("id_department", "==", departmentRef)
@@ -82,6 +87,7 @@ export const getUsersByDepartmentService = async (
             return {
                 uid: doc.id,
                 id_member: data.id_member,
+
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
@@ -97,7 +103,8 @@ export const getUsersByDepartmentService = async (
     return {
         department_id: departmentId,
         department_name: departmentName, // ✅ thêm cái này
-
+        icon: departmentIcon,
+        iconColor: departmentIconColor,
         total: filteredUsers.length,
         leader,
         users: filteredUsers,
@@ -106,9 +113,9 @@ export const getUsersByDepartmentService = async (
 
 export const updateDepartmentService = async (
     id: string,
-    data: { name: string }
+    data: { name: string, icon: string, iconColor: string }
 ) => {
-    const { name } = data;
+    const { name, icon, iconColor } = data;
 
     if (!id) {
         throw new Error("Department ID is required");
@@ -129,6 +136,8 @@ export const updateDepartmentService = async (
     // 🔥 update
     await docRef.update({
         name,
+        icon,
+        iconColor,
         updated_at: new Date(), // ✅ thêm cái này
     });
 
