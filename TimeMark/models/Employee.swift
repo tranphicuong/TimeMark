@@ -4,12 +4,14 @@ import SwiftUI
 enum EmployeeStatusApi: String {
     case active = "HOẠT ĐỘNG"
     case onLeave = "NGHỈ PHÉP"
+    case resigned = "NGHỈ VIỆC"
     case locked = "ĐÃ KHÓA"
     
     var color: Color {
         switch self {
         case .active: return .green
         case .onLeave: return .gray
+        case .resigned: return .orange
         case .locked: return .red
         }
     }

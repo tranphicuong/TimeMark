@@ -21,7 +21,7 @@ struct EmployeeAPI: Codable {
     //name
     let department: String
 
-
+    let avatarURL : String?
     
     let isActive: Bool
     let isDeleted: Bool

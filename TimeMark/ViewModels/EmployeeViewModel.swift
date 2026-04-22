@@ -36,7 +36,7 @@ class EmployeeViewModel: ObservableObject {
                         position: item.position,
                         department: item.department,
                         status: status,
-                        imageName: "person.circle.fill"
+                        imageName: item.avatarURL ?? "person.circle.fill"
 
                     )
                 }

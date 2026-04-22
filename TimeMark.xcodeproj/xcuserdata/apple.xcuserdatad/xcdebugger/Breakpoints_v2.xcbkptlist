@@ -7,16 +7,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "D732E9AA-3DBF-4909-8B82-095F43DC57A3"
-            shouldBeEnabled = "Yes"
+            uuid = "AC3F730C-7653-4D2F-A4DF-9B6FCB93D0E6"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "TimeMark/models/EmployeeAPI.swift"
+            filePath = "TimeMark/models/Department/DepartmentModels.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "25"
-            endingLineNumber = "25"
-            landmarkName = "EmployeeAPI"
+            startingLineNumber = "9"
+            endingLineNumber = "9"
+            landmarkName = "DepartmentData"
             landmarkType = "14">
          </BreakpointContent>
       </BreakpointProxy>

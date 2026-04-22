@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AdminSettingsView: View {
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Header Area

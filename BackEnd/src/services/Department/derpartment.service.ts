@@ -1,187 +1,190 @@
 import { adminDb } from "../../config/firebase.config";
 // tao phong ban
 export const createDepartmentService = async (data: {
-    name: string;
-    icon: string;
-    iconColor: string;
+  name: string;
+  icon: string;
+  description: string;
+  iconColor: string;
 }) => {
-    const { name, icon, iconColor } = data;
+  const { name, icon, description, iconColor } = data;
 
-    // 🔥 validate
-    if (!name) {
-        throw new Error("Department name is required");
-    }
+  // 🔥 validate
+  if (!name) {
+    throw new Error("Department name is required");
+  }
 
-    // 🔥 hard-code id_office (theo yêu cầu m)
-    const officeRef = adminDb.doc("office/cA6fDsE87Giu9zgbEWjB");
+  // 🔥 hard-code id_office (theo yêu cầu m)
+  const officeRef = adminDb.doc("office/cA6fDsE87Giu9zgbEWjB");
 
-    // 🔥 check office tồn tại
-    const officeSnap = await officeRef.get();
-    if (!officeSnap.exists) {
-        throw new Error("Office not found");
-    }
+  // 🔥 check office tồn tại
+  const officeSnap = await officeRef.get();
+  if (!officeSnap.exists) {
+    throw new Error("Office not found");
+  }
 
-    // 🔥 tạo department
-    const docRef = await adminDb.collection("department").add({
-        name,
-        id_office: officeRef,
-        icon,
-        iconColor,
-        created_at: new Date(),
-    });
+  // 🔥 tạo department
+  const docRef = await adminDb.collection("department").add({
+    name,
+    id_office: officeRef,
+    icon,
+    iconColor,
+    description,
+    created_at: new Date(),
+  });
 
-    return {
-        id: docRef.id,
-        name,
-    };
+  return {
+    id: docRef.id,
+    name,
+  };
 };
 //get all user by department
-export const getUsersByDepartmentService = async (
-    departmentId: string
-) => {
-    const departmentRef = adminDb.doc(`department/${departmentId}`);
+export const getUsersByDepartmentService = async (departmentId: string) => {
+  const departmentRef = adminDb.doc(`department/${departmentId}`);
 
-    // 🔥 id trưởng phòng
-    const LEADER_POSITION_ID = "VqfJNhhuL0j4dv7SF7Rf";
+  // 🔥 id trưởng phòng
+  const LEADER_POSITION_ID = "VqfJNhhuL0j4dv7SF7Rf";
 
-    // 🔥 lấy luôn department
-    const departmentSnap = await departmentRef.get();
-    if (!departmentSnap.exists) {
-        throw new Error("Department not found");
-    }
+  // 🔥 lấy luôn department
+  const departmentSnap = await departmentRef.get();
+  if (!departmentSnap.exists) {
+    throw new Error("Department not found");
+  }
+  //data
+  const departmentData = departmentSnap.data();
+  const departmentName = departmentData?.name || null;
+  const departmentIcon = departmentData?.icon || null;
+  const departmentDescription = departmentData?.description || null;
+  const departmentIconColor = departmentData?.iconColor || null;
+  const snapshot = await adminDb
+    .collection("users")
+    .where("id_department", "==", departmentRef)
+    .get();
 
-    const departmentName = departmentSnap.data()?.name || null;
-    const departmentIcon = departmentSnap.data()?.icon || null;
-    const departmentIconColor = departmentSnap.data()?.iconColor || null;
-    const snapshot = await adminDb
-        .collection("users")
-        .where("id_department", "==", departmentRef)
-        .get();
+  let leader: any = null;
 
-    let leader: any = null;
+  const users = await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      const data = doc.data();
 
-    const users = await Promise.all(
-        snapshot.docs.map(async (doc) => {
-            const data = doc.data();
+      if (data.isDeleted) return null;
 
-            if (data.isDeleted) return null;
+      const positionRef = data.id_position;
 
-            const positionRef = data.id_position;
+      let positionName = null;
 
-            let positionName = null;
+      if (positionRef) {
+        const posSnap = await positionRef.get();
+        positionName = posSnap.data()?.name || null;
 
-            if (positionRef) {
-                const posSnap = await positionRef.get();
-                positionName = posSnap.data()?.name || null;
+        if (positionRef.id === LEADER_POSITION_ID) {
+          leader = {
+            uid: doc.id,
+            name: data.name,
+            email: data.email,
+            avatarURL: data.avatarURL,
+          };
+        }
+      }
 
-                if (positionRef.id === LEADER_POSITION_ID) {
-                    leader = {
-                        uid: doc.id,
-                        name: data.name,
-                        email: data.email,
-                        avatarURL: data.avatarURL
-                    };
-                }
-            }
+      return {
+        uid: doc.id,
+        id_member: data.id_member,
 
-            return {
-                uid: doc.id,
-                id_member: data.id_member,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        position: positionName,
+        isActive: data.isActive,
+        avatarURL: data.avatarURL,
+      };
+    }),
+  );
 
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
-                position: positionName,
-                isActive: data.isActive,
-                avatarURL: data.avatarURL
-            };
-        })
-    );
+  const filteredUsers = users.filter(Boolean);
 
-    const filteredUsers = users.filter(Boolean);
-
-    return {
-        department_id: departmentId,
-        department_name: departmentName, // ✅ thêm cái này
-        icon: departmentIcon,
-        iconColor: departmentIconColor,
-        total: filteredUsers.length,
-        leader,
-        users: filteredUsers,
-    };
+  return {
+    department_id: departmentId,
+    department_name: departmentName, // ✅ thêm cái này
+    icon: departmentIcon,
+    isDeleted: departmentData?.isDeleted || false,
+    description: departmentDescription,
+    iconColor: departmentIconColor,
+    total: filteredUsers.length,
+    leader,
+    users: filteredUsers,
+  };
 };
 
 export const updateDepartmentService = async (
-    id: string,
-    data: { name: string, icon: string, iconColor: string }
+  id: string,
+  data: { name: string; icon: string; iconColor: string; description: string },
 ) => {
-    const { name, icon, iconColor } = data;
+  const { name, icon, iconColor, description } = data;
 
-    if (!id) {
-        throw new Error("Department ID is required");
-    }
+  if (!id) {
+    throw new Error("Department ID is required");
+  }
 
-    if (!name) {
-        throw new Error("Department name is required");
-    }
+  if (!name) {
+    throw new Error("Department name is required");
+  }
 
-    const docRef = adminDb.collection("department").doc(id);
+  const docRef = adminDb.collection("department").doc(id);
 
-    // 🔥 check tồn tại
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) {
-        throw new Error("Department not found");
-    }
+  // 🔥 check tồn tại
+  const docSnap = await docRef.get();
+  if (!docSnap.exists) {
+    throw new Error("Department not found");
+  }
 
-    // 🔥 update
-    await docRef.update({
-        name,
-        icon,
-        iconColor,
-        updated_at: new Date(), // ✅ thêm cái này
-    });
+  // 🔥 update
+  await docRef.update({
+    name,
+    icon,
+    iconColor,
+    description,
+    updated_at: new Date(), // ✅ thêm cái này
+  });
 
-    return {
-        id,
-        name,
-    };
-
-
+  return {
+    id,
+    name,
+  };
 };
 
 export const deleteDepartmentService = async (id: string) => {
-    if (!id) {
-        throw new Error("Department ID is required");
-    }
+  if (!id) {
+    throw new Error("Department ID is required");
+  }
 
-    const departmentRef = adminDb.doc(`department/${id}`);
+  const departmentRef = adminDb.doc(`department/${id}`);
 
-    // 🔥 check tồn tại
-    const depSnap = await departmentRef.get();
-    if (!depSnap.exists) {
-        throw new Error("Department not found");
-    }
+  // 🔥 check tồn tại
+  const depSnap = await departmentRef.get();
+  if (!depSnap.exists) {
+    throw new Error("Department not found");
+  }
 
-    // 🔥 check còn user không
-    const userSnapshot = await adminDb
-        .collection("users")
-        .where("id_department", "==", departmentRef)
-        .where("isDeleted", "==", false)
-        .limit(1) // 🔥 tối ưu, chỉ cần biết có hay không
-        .get();
+  // 🔥 check còn user không
+  const userSnapshot = await adminDb
+    .collection("users")
+    .where("id_department", "==", departmentRef)
+    .where("isDeleted", "==", false)
+    .limit(1) // 🔥 tối ưu, chỉ cần biết có hay không
+    .get();
 
-    if (!userSnapshot.empty) {
-        throw new Error("Department still has users");
-    }
+  if (!userSnapshot.empty) {
+    throw new Error("Department still has users");
+  }
 
-    // 🔥 soft delete (KHÔNG xóa thật)
-    await departmentRef.update({
-        isDeleted: true,
-        deleted_at: new Date(),
-    });
+  // 🔥 soft delete (KHÔNG xóa thật)
+  await departmentRef.update({
+    isDeleted: true,
+    deleted_at: new Date(),
+  });
 
-    return {
-        id,
-        message: "Department deleted",
-    };
+  return {
+    id,
+    message: "Department deleted",
+  };
 };

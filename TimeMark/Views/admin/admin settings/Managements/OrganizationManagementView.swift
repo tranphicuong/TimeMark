@@ -12,10 +12,12 @@ struct OrganizationManagementView: View {
     @State private var showAddPosition = false
     @State private var departments: [DepartmentData] = []
 
+    @State private var selectedDepartment: DepartmentData?
+    
+            
     var body: some View {
         VStack(spacing: 0) {
             
-            // MARK: Tabs
             HStack(spacing: 0) {
                 TabButton(title: "Phòng ban", isSelected: selectedTab == 0) {
                     selectedTab = 0
@@ -29,7 +31,6 @@ struct OrganizationManagementView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    
                     header
                     
                     if selectedTab == 0 {
@@ -43,8 +44,19 @@ struct OrganizationManagementView: View {
             .background(Color(uiColor: .systemGroupedBackground))
         }
         .navigationTitle("Quản lý Tổ chức")
+        .navigationDestination(item: $selectedDepartment) { dept in
+            DepartmentDetailView(
+                department: dept,
+                onDeleteSuccess: {
+                    loadDepartments()
+                }
+            )
+                .toolbar(.hidden, for: .tabBar)
+        }
         .sheet(isPresented: $showAddDepartment) {
-            AddDepartmentView()
+            AddDepartmentView {
+                loadDepartments()
+            } 
         }
         .sheet(isPresented: $showAddPosition) {
             AddPositionView()
@@ -61,7 +73,6 @@ struct OrganizationManagementView: View {
                 switch result {
                 case .success(let data):
                     self.departments = data
-                    print(data)
                     
                 case .failure(let error):
                     print("❌ Lỗi load department:", error.localizedDescription)
@@ -102,7 +113,13 @@ struct OrganizationManagementView: View {
             }
             
             ForEach(departments) { dept in
-                DepartmentCard(dept: dept)
+                DepartmentCard(
+                    dept: dept,
+                    onSuccess: loadDepartments,
+                    onDetail: {
+                        selectedDepartment = dept
+                    }
+                )
             }
             
         }

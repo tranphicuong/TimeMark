@@ -45,10 +45,29 @@ struct EmployeeCard: View {
             
             // Main card
             HStack {
-                Image(systemName: employee.imageName)
-                    .resizable()
+                if employee.imageName.starts(with: "http"),
+                   let url = URL(string: employee.imageName) {
+                    
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.gray)
+                    }
                     .frame(width: 50, height: 50)
-                
+                    .clipShape(Circle())
+                    
+                } else {
+                    Image(systemName: employee.imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 50, height: 50)
+                        .foregroundColor(.gray)
+                }
                 VStack(alignment: .leading) {
                     Text(employee.name).bold()
                     Text("\(employee.position) • \(employee.id_member)")
