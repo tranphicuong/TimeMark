@@ -1,9 +1,10 @@
 import express from "express";
 import {
-    createDepartmentService,
-    deleteDepartmentService,
-    getUsersByDepartmentService,
-    updateDepartmentService,
+  createDepartmentService,
+  deleteDepartmentService,
+  getAllDepartmentsService,
+  getUsersByDepartmentService,
+  updateDepartmentService,
 } from "../../services/Department/derpartment.service";
 
 const router = express.Router();
@@ -69,5 +70,17 @@ router.delete("/:id", async (req, res) => {
     });
   }
 });
-
+router.get("/", async (req, res) => {
+  try {
+    const result = await getAllDepartmentsService();
+    return res.status(200).json({
+      message: "Get all departments success",
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      message: error.message,
+    });
+  }
+});
 export default router;

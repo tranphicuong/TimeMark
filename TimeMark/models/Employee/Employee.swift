@@ -26,6 +26,6 @@ struct Employee: Identifiable {
     let position: String
     let department: String
 
-    let status: EmployeeStatusApi
+    var status: EmployeeStatusApi
     let imageName: String
 }

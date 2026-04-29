@@ -2,7 +2,7 @@ import Foundation
 
 class APIService {
     static let shared = APIService()
-    private let baseURL = "http://192.168.1.30:3001"
+    private let baseURL = "http://192.168.1.4:3001"
 
     private init() {}
 

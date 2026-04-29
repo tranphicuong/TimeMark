@@ -51,7 +51,15 @@ extension DepartmentUser {
     }
 }
 //list department
-struct DepartmentListItem: Identifiable {
+struct DepartmentListItem: Identifiable, Codable, Hashable{
     let id: String
     let name: String
+    let icon: String?
+    let iconColor: String?
+    let isDeleted: Bool?
+
+}
+struct DepartmentListResponse: Codable {
+    let message: String
+    let data: [DepartmentListItem]
 }

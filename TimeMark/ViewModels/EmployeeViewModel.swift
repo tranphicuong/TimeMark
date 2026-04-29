@@ -3,7 +3,8 @@ import Foundation
 class EmployeeViewModel: ObservableObject {
     
     @Published var employees: [Employee] = []
-    
+    @Published var deletedEmployees: [Employee] = []
+    //fetch tất cả các user còn hoạt động
     func fetchEmployees() {
         EmployeeService.shared.getAllUsers { data, error in
             
@@ -16,12 +17,12 @@ class EmployeeViewModel: ObservableObject {
             
             do {
                 let decoded = try JSONDecoder().decode(EmployeeResponse.self, from: data)
-
+                
                 let mapped = decoded.data.map { item in
                     let status: EmployeeStatusApi
-
+                    
                     if item.isDeleted {
-                        status = .onLeave
+                        status = .resigned
                     } else if item.isActive {
                         status = .active
                     } else {
@@ -37,7 +38,7 @@ class EmployeeViewModel: ObservableObject {
                         department: item.department,
                         status: status,
                         imageName: item.avatarURL ?? "person.circle.fill"
-
+                        
                     )
                 }
                 
@@ -47,6 +48,111 @@ class EmployeeViewModel: ObservableObject {
                 
             } catch {
                 print("❌ DECODE ERROR:", error)
+            }
+        }
+    }
+    // lấy tất cả user cho playoff
+    func fetchDeletedEmployees() {
+        UserService.shared.getAllDeletedUsers { data, error in
+            if let error = error {
+                print("❌ Deleted API ERROR:", error)
+                return
+            }
+
+            guard let data = data else { return }
+
+            do {
+                let decoded = try JSONDecoder().decode(
+                    EmployeeResponse.self,
+                    from: data
+                )
+
+                let mapped = decoded.data.map { item in
+                    Employee(
+                        id: item.uid,
+                        email: item.email,
+                        name: item.name,
+                        id_member: item.id_member,
+                        position: item.position,
+                        department: item.department,
+                        status: .resigned,
+                        imageName: item.avatarURL ?? "person.circle.fill"
+                    )
+                }
+
+                DispatchQueue.main.async {
+                    self.deletedEmployees = mapped
+                }
+
+            } catch {
+                print("❌ Decode deleted error:", error)
+            }
+        }
+    }
+    //lock/unlock tài khoản
+    func toggleLock(
+        employee: Employee,
+        completion: @escaping () -> Void
+    ) {
+        let newStatus = employee.status != .active
+        
+        UserService.shared.toggleUserStatus(
+            uid: employee.id,
+            isActive: newStatus
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self?.fetchEmployees()
+                    completion()
+                    
+                case .failure(let error):
+                    print("❌ Lock failed:", error.localizedDescription)
+                }
+            }
+        }
+    }
+    //xóa tài khoảnn nhân sự
+    func deleteEmployee(
+        employee: Employee,
+        completion: @escaping () -> Void
+    ) {
+        UserService.shared.deleteUser(
+            uid: employee.id
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self?.fetchEmployees()
+                    completion()
+
+                case .failure(let error):
+                    print("❌ Delete failed:", error.localizedDescription)
+                }
+            }
+        }
+    }
+    //chỉnh sửa vị trí và phòng ban
+    func editEmployee(
+        employee: Employee,
+        departmentId: String,
+        positionId: String,
+        completion: @escaping () -> Void
+    ) {
+        UserService.shared.editUser(
+            uid: employee.id,
+            idPosition: positionId,
+            idDepartment: departmentId
+        ) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    self?.fetchEmployees()
+                    completion()
+
+                case .failure(let error):
+                    print("❌ Edit failed:", error.localizedDescription)
+                }
             }
         }
     }

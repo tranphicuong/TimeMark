@@ -26,3 +26,13 @@ struct EmployeeAPI: Codable {
     let isActive: Bool
     let isDeleted: Bool
 }
+//struct data create user
+
+struct CreateEmployee{
+    let email: String
+    let password: String
+    let name: String
+    let id_position: String
+    let id_department: String
+    
+}

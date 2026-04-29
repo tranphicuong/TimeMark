@@ -16,33 +16,40 @@ struct EmployeeCard: View {
     
     private let buttonWidth: CGFloat = 70
     private let totalWidth: CGFloat = 210
-    
+    private var isDeletedEmployee: Bool {
+        employee.status == .resigned
+    }
     var body: some View {
         ZStack(alignment: .trailing) {
             
             // Action buttons
-            HStack(spacing: 0) {
-                ActionButton(icon: "pencil", label: "Sửa", color: .blue) {
-                    reset()
-                    onEdit()
+            if !isDeletedEmployee {
+                HStack(spacing: 0) {
+                    ActionButton(icon: "pencil", label: "Sửa", color: .blue) {
+                        reset()
+                        onEdit()
+                    }
+                    .frame(width: buttonWidth)
+                    
+                    ActionButton(
+                        icon: employee.status == .active ? "lock.fill" : "lock.open.fill",
+                        label: employee.status == .active ? "Khóa" : "Mở",
+                        color: .orange
+                    ) {
+                        reset()
+                        onLock()
+                    }
+                    .frame(width: buttonWidth)
+                    
+                    ActionButton(icon: "trash.fill", label: "Xóa", color: .red) {
+                        reset()
+                        onDelete()
+                    }
+                    .frame(width: buttonWidth)
                 }
-                .frame(width: buttonWidth)
+                .cornerRadius(12)
                 
-                ActionButton(icon: "lock.fill", label: "Khóa", color: .orange) {
-                    reset()
-                    onLock()
-                }
-                .frame(width: buttonWidth)
-                
-                ActionButton(icon: "trash.fill", label: "Xóa", color: .red) {
-                    reset()
-                    onDelete()
-                }
-                .frame(width: buttonWidth)
             }
-            .cornerRadius(12)
-
-            
             // Main card
             HStack {
                 if employee.imageName.starts(with: "http"),
@@ -88,6 +95,7 @@ struct EmployeeCard: View {
             .cornerRadius(12)
             .offset(x: offset)
             .gesture(
+                isDeletedEmployee ? nil :
                 DragGesture()
                     .onChanged { value in
                         let trans = value.translation.width

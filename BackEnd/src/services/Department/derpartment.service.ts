@@ -188,3 +188,16 @@ export const deleteDepartmentService = async (id: string) => {
     message: "Department deleted",
   };
 };
+
+export const getAllDepartmentsService = async () => {
+  const snapshot = await adminDb.collection("department").get();
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data() as { isDeleted?: boolean; [key: string]: any };
+      return {
+        id: doc.id,
+        ...data,
+      };
+    })
+    .filter((dept) => dept.isDeleted !== true);
+};
