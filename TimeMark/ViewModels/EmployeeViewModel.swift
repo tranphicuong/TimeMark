@@ -4,6 +4,7 @@ class EmployeeViewModel: ObservableObject {
     
     @Published var employees: [Employee] = []
     @Published var deletedEmployees: [Employee] = []
+    
     //fetch tất cả các user còn hoạt động
     func fetchEmployees() {
         EmployeeService.shared.getAllUsers { data, error in

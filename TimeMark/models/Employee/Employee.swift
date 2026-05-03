@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 🔥 ENUM (ĐẶT Ở ĐÂY)
+//  ENUM (ĐẶT Ở ĐÂY)
 enum EmployeeStatusApi: String {
     case active = "HOẠT ĐỘNG"
     case onLeave = "NGHỈ PHÉP"
@@ -17,7 +17,7 @@ enum EmployeeStatusApi: String {
     }
 }
 
-// 🔥 MODEL
+//  MODEL
 struct Employee: Identifiable {
     let id: String
     let email: String
