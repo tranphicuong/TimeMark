@@ -1,4 +1,5 @@
 import SwiftUI
+
 struct AvatarView: View {
     
     var size: CGFloat = 60
@@ -14,6 +15,7 @@ struct AvatarView: View {
                     switch phase {
                     case .empty:
                         ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                         
                     case .success(let image):
                         image
@@ -21,19 +23,25 @@ struct AvatarView: View {
                             .scaledToFill()
                         
                     case .failure:
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.blue)
+                        placeholder
                         
                     @unknown default:
-                        EmptyView()
+                        placeholder
                     }
                 }
+                .id(avatarURL + UUID().uuidString)  // Force reload mạnh hơn
+                .transition(.opacity.animation(.easeInOut))
             } else {
-                Image(systemName: "person.fill")
-                    .foregroundColor(.blue)
+                placeholder
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
+    }
+    
+    private var placeholder: some View {
+        Image(systemName: "person.fill")
+            .font(.system(size: size * 0.45))
+            .foregroundColor(.blue.opacity(0.7))
     }
 }

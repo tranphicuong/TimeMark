@@ -15,6 +15,7 @@ class HomeViewModel: ObservableObject {
     @Published var toastSuccess: Bool = true
     @Published var showCamera: Bool = false
     @Published var cameraMode: CameraMode = .checkIn
+    @Published var remainingLeaveDays: Int = 0
     
     enum CameraMode {
         case checkIn
@@ -26,17 +27,20 @@ class HomeViewModel: ObservableObject {
     private let attendanceService = AttendanceService.shared
     private let cloudinaryService = CloudinaryService.shared
     private let notificationService = NotificationService.shared
+    private let db = Firestore.firestore()
     
-    private var attendanceListener: ListenerRegistration?   // ← Realtime
+    private var attendanceListener: ListenerRegistration?
+    private var leaveBalanceListener: ListenerRegistration?
     
     static let shared = HomeViewModel()
     
     // MARK: - Init
     init() {
         startRealtimeAttendanceListener()
+        startLeaveBalanceListener()
     }
     
-    // MARK: - Realtime Listener (Quan trọng)
+    // MARK: - Realtime Listener
     private func startRealtimeAttendanceListener() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
@@ -82,6 +86,7 @@ class HomeViewModel: ObservableObject {
     // MARK: - Cleanup
     deinit {
         attendanceListener?.remove()
+        leaveBalanceListener?.remove()
     }
     
     private func todayString() -> String {
@@ -216,4 +221,29 @@ class HomeViewModel: ObservableObject {
         let diff = Int((checkOutTime ?? Date()).timeIntervalSince(inTime))
         return "\(diff / 3600)h \(String(format: "%02d", (diff % 3600) / 60))m"
     }
+    func startLeaveBalanceListener() {
+            guard let uid = Auth.auth().currentUser?.uid else { return }
+            
+          
+            leaveBalanceListener?.remove()
+            
+            db.collection("leave_balance")
+                .whereField("id_user", isEqualTo: db.document("users/\(uid)"))
+                .limit(to: 1)
+                .addSnapshotListener { [weak self] snapshot, error in
+                    guard let self = self,
+                          let balanceDoc = snapshot?.documents.first else { return }
+                    
+                    balanceDoc.reference.collection("item")
+                        .limit(to: 1)
+                        .addSnapshotListener { itemSnapshot, _ in
+                            guard let itemDoc = itemSnapshot?.documents.first else { return }
+                            
+                            let data = itemDoc.data()
+                            DispatchQueue.main.async {
+                                self.remainingLeaveDays = data["remaining_days"] as? Int ?? 0
+                            }
+                        }
+                }
+        }
 }

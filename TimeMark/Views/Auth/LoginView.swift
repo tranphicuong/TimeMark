@@ -11,15 +11,14 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
-            // ZStack ngoài cùng để quản lý các lớp đè lên nhau
+        
             ZStack {
                
                 Color(.systemGray6).ignoresSafeArea()
 
               
                 VStack(spacing: 30) {
-                    
-                    // Hiển thị lỗi (nếu có)
+       
                     if authVM.showError {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.circle.fill")

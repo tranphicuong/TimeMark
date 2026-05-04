@@ -156,7 +156,7 @@ struct HomeView: View {
                     AvatarView(
                         size: 46,
                         avatarURL: avatarURL
-                    )
+                    ).id(avatarURL)
                 }
                 .onAppear {
                     UserService.shared.listenUser { url in
@@ -272,36 +272,71 @@ struct HomeView: View {
     }
 
     // MARK: - Phép năm
+
     var leaveInfoCard: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                // Icon
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10).fill(Color.blue.opacity(0.1)).frame(width: 40, height: 40)
-                    Image(systemName: "calendar.badge.clock").foregroundColor(.blue)
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 24))
+                        .foregroundColor(.blue)
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Phép năm còn lại").font(.caption).foregroundColor(.gray)
-                    Text("\(remainingLeaveDays) ngày").font(.subheadline).fontWeight(.bold)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Phép năm còn lại")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text("\(vm.remainingLeaveDays) ngày")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
                 }
+                
+                Spacer()
             }
-            Spacer()
-            NavigationLink(destination: LeaveRequestView()) {
-                HStack(spacing: 6) {
-                    Image(systemName: "doc.text.fill").font(.caption)
-                    Text("Gửi yêu cầu").font(.caption).fontWeight(.semibold)
+            
+  
+            HStack(spacing: 12) {
+                // Nút Gửi yêu cầu
+                NavigationLink(destination: LeaveRequestView()) {
+                    HStack {
+                        Image(systemName: "doc.text.fill")
+                        Text("Gửi yêu cầu")
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue)
+                    .cornerRadius(14)
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.blue)
-                .cornerRadius(12)
+                
+                // Nút Xem lịch sử
+                NavigationLink(destination: LeaveRequestListView()) {
+                    HStack {
+                        Image(systemName: "list.bullet")
+                        Text("Xem lịch sử")
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.blue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(14)
+                }
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color.white)
-        .cornerRadius(14)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
     }
-
     // MARK: - Toast
     var toastView: some View {
         HStack(spacing: 10) {

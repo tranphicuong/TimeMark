@@ -14,6 +14,8 @@ class AuthViewModel: ObservableObject {
     @Published var showError = false
     @Published var resetEmailSent = false
     @Published var isCheckingAuth = true
+    @Published var userPosition: String = ""
+    @Published var userDepartment: String = ""
     
     private let db = Firestore.firestore()
     
@@ -125,6 +127,26 @@ class AuthViewModel: ObservableObject {
                 } else {
                     self.userRole = "user"
                 }
+                if let positionRef = data["id_position"] as? DocumentReference {
+                                positionRef.getDocument { posSnap, _ in
+                                    if let posData = posSnap?.data() {
+                                        self.userPosition = posData["name"] as? String ?? "Nhân viên"
+                                    }
+                                }
+                            } else {
+                                self.userPosition = "Nhân viên"
+                            }
+                            
+                            // === LẤY PHÒNG BAN (Department) ===
+                            if let departmentRef = data["id_department"] as? DocumentReference {
+                                departmentRef.getDocument { depSnap, _ in
+                                    if let depData = depSnap?.data() {
+                                        self.userDepartment = depData["name"] as? String ?? "Chưa có phòng ban"
+                                    }
+                                }
+                            } else {
+                                self.userDepartment = "Chưa có phòng ban"
+                            }
                 self.isLoggedIn = true
                 // Lưu thông tin đăng nhập
                 UserDefaults.standard.set(true, forKey: "isLoggedIn")
