@@ -16,7 +16,10 @@ class AuthViewModel: ObservableObject {
     @Published var isCheckingAuth = true
     @Published var userPosition: String = ""
     @Published var userDepartment: String = ""
-    
+    @Published var isAccountLocked = false
+    @Published var showLockedAlert = false
+    @Published var avatarURL: String = ""
+       
     private let db = Firestore.firestore()
     
     // MARK: - Singleton
@@ -28,7 +31,7 @@ class AuthViewModel: ObservableObject {
     }
     //MARK: Giữ màn hình 5s
     private func startSplashScreenDelay() {
-        // Giữ màn hình logo trong đúng 3 giây
+        // Giữ màn hình logo
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             self.resetStateOnFirstLaunch()
         }
@@ -73,6 +76,7 @@ class AuthViewModel: ObservableObject {
 
         isLoading = true
         showError = false
+        isAccountLocked = false
 
         Auth.auth().signIn(withEmail: email, password: password) { [weak self] result, error in
             guard let self = self else { return }
@@ -87,6 +91,8 @@ class AuthViewModel: ObservableObject {
 
                 if let uid = result?.user.uid {
                     self.fetchUserInfo(uid: uid)
+                    
+                    HomeViewModel.shared.setupListenersForCurrentUser()
                 }
             }
         }
@@ -113,6 +119,19 @@ class AuthViewModel: ObservableObject {
                     self.isCheckingAuth = false
                     return
                 }
+                
+                //kiểm tra xem tài khoản có bị khóa hay không
+                let isActive = data["isActive"] as? Bool ?? true
+                               if !isActive {
+                                   try? Auth.auth().signOut()
+                                   self.isAccountLocked = true
+                                   self.showLockedAlert = true
+                                   self.isLoggedIn = false
+                                   self.isCheckingAuth = false
+                                   self.isLoading = false
+                                   self.setError("Tài khoản của bạn đã bị khoá. Vui lòng liên hệ quản trị viên.")
+                                   return
+                               }
 
           
 
@@ -137,7 +156,7 @@ class AuthViewModel: ObservableObject {
                                 self.userPosition = "Nhân viên"
                             }
                             
-                            // === LẤY PHÒNG BAN (Department) ===
+                            
                             if let departmentRef = data["id_department"] as? DocumentReference {
                                 departmentRef.getDocument { depSnap, _ in
                                     if let depData = depSnap?.data() {
@@ -158,59 +177,6 @@ class AuthViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Tạo user mới (dành cho Admin)
-    func addUser(email: String,
-                 password: String,
-                 name: String,
-                 phone: String = "",
-                 departmentId: String = "",
-                 positionId: String = "",
-                 completion: @escaping (Bool, String) -> Void) {
-        
-        isLoading = true
-        
-        Auth.auth().createUser(withEmail: email, password: password) { [weak self] result, error in
-            guard let self = self else { return }
-            
-            if let error = error {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    completion(false, self.parseFirebaseError(error))
-                }
-                return
-            }
-            
-            guard let uid = result?.user.uid else {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    completion(false, "Không lấy được UID")
-                }
-                return
-            }
-            
-            let roleRef = self.db.document("roles/user")
-            
-            let userData: [String: Any] = [
-                "email": email,
-                "name": name,
-                "phone": phone,
-                "id_department": departmentId,
-                "id_position": positionId,
-                "id_role": roleRef
-            ]
-            
-            self.db.collection("user").document(uid).setData(userData) { error in
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                    if let error = error {
-                        completion(false, "Tạo thông tin user thất bại: \(error.localizedDescription)")
-                    } else {
-                        completion(true, "Tạo tài khoản thành công!")
-                    }
-                }
-            }
-        }
-    }
 
     // MARK: - Quên mật khẩu
     func sendPasswordReset(email: String, completion: @escaping (Bool, String) -> Void) {
@@ -244,6 +210,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Đăng xuất
     func logout() {
         do {
+            HomeViewModel.shared.resetAllData() 
             try Auth.auth().signOut()
             resetUserData()
         } catch {
@@ -266,6 +233,16 @@ class AuthViewModel: ObservableObject {
         UserDefaults.standard.set(false, forKey: "isLoggedIn")
         UserDefaults.standard.set("", forKey: "userRole")
         UserDefaults.standard.set("", forKey: "userName")
+    }
+    //lang nghe tu firebase
+    func listenUser() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+
+        UserService.shared.listenUser(uid: uid) { [weak self] url in
+            DispatchQueue.main.async {
+                self?.avatarURL = url ?? ""
+            }
+        }
     }
 
     // MARK: - Helpers

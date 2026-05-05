@@ -29,7 +29,6 @@ struct AvatarView: View {
                         placeholder
                     }
                 }
-                .id(avatarURL + UUID().uuidString)  // Force reload mạnh hơn
                 .transition(.opacity.animation(.easeInOut))
             } else {
                 placeholder

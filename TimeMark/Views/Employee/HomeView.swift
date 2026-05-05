@@ -1,6 +1,6 @@
 
 
-
+import FirebaseAuth
 import SwiftUI
 
 struct HomeView: View {
@@ -9,9 +9,11 @@ struct HomeView: View {
     @AppStorage("userName") var userName = "Nhân viên"
 
     @State private var currentTime = Date()
-    @AppStorage("avatarURL") var avatarURL: String = ""
-    @State private var remainingLeaveDays = 12
+    @State private var avatarURL: String = ""
 
+    
+
+    
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     let workStart = "08:00"
     let workEnd   = "17:00"
@@ -156,13 +158,11 @@ struct HomeView: View {
                     AvatarView(
                         size: 46,
                         avatarURL: avatarURL
-                    ).id(avatarURL)
+                    )
                 }
                 .onAppear {
-                    UserService.shared.listenUser { url in
-                        if let url = url {
-                            avatarURL = url
-                        }
+                    UserService.shared.loadAvatar{
+                        url in avatarURL  =  url
                     }
                 }
                 VStack(alignment: .leading, spacing: 2) {

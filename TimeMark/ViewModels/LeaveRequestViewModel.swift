@@ -19,8 +19,11 @@ class LeaveRequestViewModel: ObservableObject {
     @Published var totalLeaveDays: Int = 0
     @Published var usedLeaveDays: Int = 0
     
+    
     private var balanceItemRef: DocumentReference?
     
+    // MARK: - Số ngày nghỉ tính theo ngày
+
     var daysOff: Int {
         let calendar = Calendar.current
         guard endDate >= startDate else { return 0 }
@@ -40,6 +43,7 @@ class LeaveRequestViewModel: ObservableObject {
         fetchLeaveBalance()
     }
     
+    // MARK: - Fetch số ngày phép
     func fetchLeaveBalance() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         
@@ -50,65 +54,64 @@ class LeaveRequestViewModel: ObservableObject {
             .limit(to: 1)
             .getDocuments { [weak self] snapshot, error in
                 guard let self = self,
-                      let balanceDoc = snapshot?.documents.first else {
-                    
-                    return
-                }
+                      let balanceDoc = snapshot?.documents.first else { return }
                 
                 balanceDoc.reference.collection("item")
                     .limit(to: 1)
-                    .getDocuments { itemSnapshot, _ in
-                        guard let itemDoc = itemSnapshot?.documents.first else {
-                           
-                            return
-                        }
+                    .getDocuments { [weak self] itemSnapshot, _ in
+                        guard let self = self,
+                              let itemDoc = itemSnapshot?.documents.first else { return }
                         
                         self.balanceItemRef = itemDoc.reference
                         
                         let data = itemDoc.data()
-                        self.totalLeaveDays = data["total_days"] as? Int ?? 12
-                        self.usedLeaveDays = data["used_days"] as? Int ?? 0
-                        self.remainingLeaveDays = data["remaining_days"] as? Int ?? 12
+                        DispatchQueue.main.async {
+                            self.totalLeaveDays     = data["total_days"] as? Int ?? 12
+                            self.usedLeaveDays      = data["used_days"] as? Int ?? 0
+                            self.remainingLeaveDays = data["remaining_days"] as? Int ?? 12
+                        }
                     }
             }
     }
     
+    // MARK: - Submit
     func submitLeaveRequest() {
         guard let leaveType = selectedLeaveType else {
-            errorMessage = "Vui lòng chọn loại nghỉ phép"
-            showError = true
+            showErrorAlert("Vui lòng chọn loại nghỉ phép")
             return
         }
         
         guard !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            errorMessage = "Vui lòng nhập lý do"
-            showError = true
+            showErrorAlert("Vui lòng nhập lý do")
             return
         }
         
         guard endDate >= startDate else {
-            errorMessage = "Ngày kết thúc phải sau hoặc bằng ngày bắt đầu"
-            showError = true
+            showErrorAlert("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu")
             return
         }
         
         guard startDate >= Calendar.current.startOfDay(for: Date()) else {
-            errorMessage = "Không được chọn ngày trong quá khứ"
-            showError = true
+            showErrorAlert("Không được chọn ngày trong quá khứ")
             return
         }
         
-        guard leaveType != .annual || daysOff <= remainingLeaveDays else {
-            errorMessage = "Bạn chỉ còn \(remainingLeaveDays) ngày phép năm. Không đủ để nghỉ \(daysOff) ngày."
-            showError = true
+        
+        if leaveType == .annual {
+            guard daysOff <= remainingLeaveDays else {
+                showErrorAlert("Bạn chỉ còn \(remainingLeaveDays) ngày phép năm. Không đủ để nghỉ \(daysOff) ngày.")
+                return
+            }
+        }
+        
+        guard let uid = Auth.auth().currentUser?.uid else {
+            showErrorAlert("Không xác định được tài khoản. Vui lòng đăng nhập lại.")
             return
         }
         
         isLoading = true
-        guard let uid = Auth.auth().currentUser?.uid else { return }
         
         let db = Firestore.firestore()
-        
         let leaveTypeRef = getLeaveTypeReference(for: leaveType)
         
         let data: [String: Any] = [
@@ -129,19 +132,21 @@ class LeaveRequestViewModel: ObservableObject {
             if let error = error {
                 DispatchQueue.main.async {
                     self.isLoading = false
-                    self.errorMessage = "Gửi đơn thất bại: \(error.localizedDescription)"
-                    self.showError = true
+                    self.showErrorAlert("Gửi đơn thất bại: \(error.localizedDescription)")
                 }
                 return
             }
             
+           
             if leaveType == .annual {
-                self.deductLeaveDays { success in
+        
+                self.deductLeaveDays(days: self.daysOff) { success in
                     DispatchQueue.main.async {
                         self.completeSubmit(success: success)
                     }
                 }
             } else {
+    
                 DispatchQueue.main.async {
                     self.completeSubmit(success: true)
                 }
@@ -149,17 +154,63 @@ class LeaveRequestViewModel: ObservableObject {
         }
     }
     
-    private func deductLeaveDays(completion: @escaping (Bool) -> Void) {
+    // MARK: - Trừ đúng số ngày truyền vào
+    private func deductLeaveDays(days: Int, completion: @escaping (Bool) -> Void) {
         guard let itemRef = balanceItemRef else {
+         
+            fetchLeaveBalance()
             completion(false)
             return
         }
         
-        itemRef.updateData([
-            "used_days": FieldValue.increment(Int64(daysOff)),
-            "remaining_days": FieldValue.increment(Int64(-daysOff))
-        ]) { error in
-            completion(error == nil)
+        guard days > 0 else {
+            completion(true)
+            return
+        }
+        
+       
+        let db = Firestore.firestore()
+        db.runTransaction({ transaction, errorPointer in
+            let itemDoc: DocumentSnapshot
+            do {
+                itemDoc = try transaction.getDocument(itemRef)
+            } catch let fetchError as NSError {
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+            
+            let currentRemaining = itemDoc.data()?["remaining_days"] as? Int ?? 0
+            let currentUsed      = itemDoc.data()?["used_days"] as? Int ?? 0
+            
+            
+            guard currentRemaining >= days else {
+                let error = NSError(
+                    domain: "LeaveRequest",
+                    code: 400,
+                    userInfo: [NSLocalizedDescriptionKey: "Không đủ ngày phép"]
+                )
+                errorPointer?.pointee = error
+                return nil
+            }
+            
+            transaction.updateData([
+                "used_days":      currentUsed + days,
+                "remaining_days": currentRemaining - days
+            ], forDocument: itemRef)
+            
+            return nil
+        }) { [weak self] _, error in
+            if let error = error {
+                print("Transaction deductLeaveDays error: \(error.localizedDescription)")
+                completion(false)
+            } else {
+              
+                DispatchQueue.main.async {
+                    self?.usedLeaveDays      += days
+                    self?.remainingLeaveDays -= days
+                }
+                completion(true)
+            }
         }
     }
     
@@ -169,27 +220,28 @@ class LeaveRequestViewModel: ObservableObject {
             showSuccess = true
             resetForm()
         } else {
-            errorMessage = "Đơn đã gửi nhưng cập nhật số ngày phép thất bại."
-            showError = true
+            showErrorAlert("Đơn đã gửi nhưng cập nhật số ngày phép thất bại. Vui lòng liên hệ HR.")
         }
     }
     
     private func resetForm() {
-        reason = ""
+        reason    = ""
         startDate = Date()
-        endDate = Date()
-        fetchLeaveBalance() // Refresh số ngày
+        endDate   = Date()
+        fetchLeaveBalance() 
     }
+    
+    private func showErrorAlert(_ message: String) {
+        errorMessage = message
+        showError    = true
+    }
+    
     // MARK: - Helper lấy Reference cho leave_type
     private func getLeaveTypeReference(for type: LeaveType) -> DocumentReference {
         let db = Firestore.firestore()
-        
         switch type {
-        case .annual:
-            return db.document("leave_type/kt3dCcKaA46mMbfnSZAb")
-        case .unpaid:
-            return db.document("leave_type/no_salary")
+        case .annual: return db.document("leave_type/kt3dCcKaA46mMbfnSZAb")
+        case .unpaid:  return db.document("leave_type/no_salary")
         }
-       
     }
 }

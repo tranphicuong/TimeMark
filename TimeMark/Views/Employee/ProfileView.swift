@@ -1,9 +1,16 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileView: View {
     
     @StateObject private var authVM = AuthViewModel.shared
-    @AppStorage("avatarURL") var avatarURL: String = ""
+    
+    @State private var avatarURL: String = ""
+    
+    private var avatarStorageKey: String {
+        let uid = Auth.auth().currentUser?.uid ?? "unknown"
+        return "avatarURL_\(uid)"
+    }
     
     // MARK: - Avatar
     @State private var showSourceDialog = false
@@ -18,7 +25,7 @@ struct ProfileView: View {
     @State private var toastMessage = ""
     
     var body: some View {
-        NavigationStack{
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 32) {
                     
@@ -26,7 +33,6 @@ struct ProfileView: View {
                     VStack(spacing: 16) {
                         ZStack {
                             AvatarView(size: 148, avatarURL: avatarURL)
-                                .id(avatarURL)
                                 .overlay(
                                     Circle()
                                         .stroke(Color.blue.opacity(0.2), lineWidth: 8)
@@ -42,7 +48,7 @@ struct ProfileView: View {
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text(authVM.userPosition.isEmpty ? "NHÂN VIÊN " : authVM.userPosition)
+                            Text(authVM.userPosition.isEmpty ? "NHÂN VIÊN" : authVM.userPosition)
                                 .font(.subheadline)
                                 .foregroundColor(.blue)
                         }
@@ -83,7 +89,6 @@ struct ProfileView: View {
                             .cornerRadius(16)
                         }
                         
-                        // Nút Đăng xuất
                         Button(role: .destructive) {
                             showLogoutConfirm = true
                         } label: {
@@ -105,7 +110,6 @@ struct ProfileView: View {
             }
             .navigationTitle("Hồ sơ")
             
-            // MARK: - Chọn ảnh
             .confirmationDialog("Chọn ảnh đại diện", isPresented: $showSourceDialog) {
                 Button("Chụp ảnh") { showCamera = true }
                 Button("Chọn từ thư viện") { showLibrary = true }
@@ -124,16 +128,17 @@ struct ProfileView: View {
                 }
             }
             
-            // MARK: - Logout
             .confirmationDialog("Bạn có chắc muốn đăng xuất?", isPresented: $showLogoutConfirm) {
                 Button("Đăng xuất", role: .destructive) {
                     authVM.logout()
-                    showToast(message: "Đã đăng xuất")
+              
+                    UserDefaults.standard.removeObject(forKey: avatarStorageKey)
+                    avatarURL = ""
+                    showToastMessage(message: "Đã đăng xuất")
                 }
                 Button("Huỷ", role: .cancel) {}
             }
             
-            // MARK: - Toast
             .overlay(
                 VStack {
                     Spacer()
@@ -151,63 +156,51 @@ struct ProfileView: View {
                 }
             )
             .onAppear {
-                loadAvatar()
+                UserService.shared.loadAvatar{
+                    url in avatarURL = url
+                }
             }
         }
     }
-        
-        // MARK: - Load Avatar
-        private func loadAvatar() {
-            UserService.shared.fetchUser { url in
-                if let url = url, !url.isEmpty {
-                    avatarURL = url
-                }
+    
+   
+    // MARK: - Upload
+    func handleUpload(_ image: UIImage) {
+        AvatarService.shared.upload(image: image) { success, url in
+            if success, let url = url, !url.isEmpty {
+                avatarURL = url
+                UserDefaults.standard.set(url, forKey: avatarStorageKey)
+                UserService.shared.updateAvatar(url: url)
+                showToastMessage(message: "Cập nhật avatar thành công")
+            } else {
+                showToastMessage(message: "Upload thất bại")
             }
+        }
+    }
+    
+    func showToastMessage(message: String) {
+        toastMessage = message
+        withAnimation { showToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { showToast = false }
+        }
+    }
+    
+    private func profileRow(icon: String, title: String, value: String) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .frame(width: 28)
             
-            UserService.shared.listenUser { url in
-                if let url = url, !url.isEmpty {
-                    avatarURL = url
-                }
-            }
-        }
-        
-        // MARK: - Upload
-        func handleUpload(_ image: UIImage) {
-            AvatarService.shared.upload(image: image) { success, url in
-                if success, let url = url, !url.isEmpty {
-                    avatarURL = url
-                    UserService.shared.updateAvatar(url: url)
-                    showToast(message: "Cập nhật avatar thành công")
-                } else {
-                    showToast(message: "Upload thất bại")
-                }
-            }
-        }
-        
-        func showToast(message: String) {
-            toastMessage = message
-            withAnimation { showToast = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                withAnimation { showToast = false }
-            }
-        }
-        
-        private func profileRow(icon: String, title: String, value: String) -> some View {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .foregroundColor(.blue)
-                    .frame(width: 28)
+            VStack(alignment: .leading) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 
-                VStack(alignment: .leading) {
-                    Text(title)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(value)
-                        .font(.body)
-                }
-                Spacer()
+                Text(value)
+                    .font(.body)
             }
+            Spacer()
         }
     }
-
+}

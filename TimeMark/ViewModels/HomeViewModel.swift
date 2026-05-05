@@ -32,26 +32,61 @@ class HomeViewModel: ObservableObject {
     private var attendanceListener: ListenerRegistration?
     private var leaveBalanceListener: ListenerRegistration?
     
+    
+    private var listeningUID: String?
+    
     static let shared = HomeViewModel()
     
     // MARK: - Init
     init() {
-        startRealtimeAttendanceListener()
-        startLeaveBalanceListener()
+        setupListenersForCurrentUser()
     }
     
-    // MARK: - Realtime Listener
-    private func startRealtimeAttendanceListener() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+    // MARK: - Setup listeners
+    func setupListenersForCurrentUser() {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            
+            stopAllListeners()
+            resetDailyState()
+            remainingLeaveDays = 0
+            return
+        }
         
+    
+        guard listeningUID != uid else { return }
+        
+        stopAllListeners()
+        listeningUID = uid
+        
+        startRealtimeAttendanceListener(uid: uid)
+        startLeaveBalanceListener(uid: uid)
+    }
+    
+    private func stopAllListeners() {
+        attendanceListener?.remove()
+        attendanceListener = nil
+        leaveBalanceListener?.remove()
+        leaveBalanceListener = nil
+        listeningUID = nil
+    }
+    
+    // MARK: - Realtime Attendance Listener (scoped theo UID)
+    private func startRealtimeAttendanceListener(uid: String) {
         let today = todayString()
-        let userRef = Firestore.firestore().document("users/\(uid)")
         
-        attendanceListener = Firestore.firestore().collection("attendance")
+        let userRef = db.document("users/\(uid)")
+        
+        attendanceListener = db.collection("attendance")
             .whereField("id_user", isEqualTo: userRef)
             .whereField("date", isEqualTo: today)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
+                
+               
+                guard Auth.auth().currentUser?.uid == uid else {
+                   
+                    return
+                }
                 
                 if let error = error {
                     print("Realtime attendance error: \(error.localizedDescription)")
@@ -71,6 +106,7 @@ class HomeViewModel: ObservableObject {
                         self.checkInTime = checkIn.dateValue()
                     } else {
                         self.isCheckedIn = false
+                        self.checkInTime = nil
                     }
                     
                     if let checkOut = data["check_out"] as? Timestamp {
@@ -78,6 +114,7 @@ class HomeViewModel: ObservableObject {
                         self.checkOutTime = checkOut.dateValue()
                     } else {
                         self.isCheckedOut = false
+                        self.checkOutTime = nil
                     }
                 }
             }
@@ -85,8 +122,7 @@ class HomeViewModel: ObservableObject {
     
     // MARK: - Cleanup
     deinit {
-        attendanceListener?.remove()
-        leaveBalanceListener?.remove()
+        stopAllListeners()
     }
     
     private func todayString() -> String {
@@ -139,13 +175,14 @@ class HomeViewModel: ObservableObject {
         }
         
         isLoading = true
-     
         
         cloudinaryService.uploadAttendanceImage(image: image) { [weak self] success, imageURL in
             guard let self = self else { return }
             guard success, let url = imageURL else {
-                self.isLoading = false
-                self.showMessage("Upload ảnh thất bại!", success: false)
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.showMessage("Upload ảnh thất bại!", success: false)
+                }
                 return
             }
             
@@ -171,6 +208,18 @@ class HomeViewModel: ObservableObject {
                 }
             }
         }
+    }
+    //MARK: ham reset sau khi logout
+    func resetAllData() {
+        stopAllListeners()
+        
+        isCheckedIn = false
+        isCheckedOut = false
+        checkInTime = nil
+        checkOutTime = nil
+        remainingLeaveDays = 0
+        
+        listeningUID = nil
     }
     
     // MARK: - Toast
@@ -221,29 +270,27 @@ class HomeViewModel: ObservableObject {
         let diff = Int((checkOutTime ?? Date()).timeIntervalSince(inTime))
         return "\(diff / 3600)h \(String(format: "%02d", (diff % 3600) / 60))m"
     }
-    func startLeaveBalanceListener() {
-            guard let uid = Auth.auth().currentUser?.uid else { return }
-            
-          
-            leaveBalanceListener?.remove()
-            
-            db.collection("leave_balance")
-                .whereField("id_user", isEqualTo: db.document("users/\(uid)"))
-                .limit(to: 1)
-                .addSnapshotListener { [weak self] snapshot, error in
-                    guard let self = self,
-                          let balanceDoc = snapshot?.documents.first else { return }
-                    
-                    balanceDoc.reference.collection("item")
-                        .limit(to: 1)
-                        .addSnapshotListener { itemSnapshot, _ in
-                            guard let itemDoc = itemSnapshot?.documents.first else { return }
-                            
-                            let data = itemDoc.data()
-                            DispatchQueue.main.async {
-                                self.remainingLeaveDays = data["remaining_days"] as? Int ?? 0
-                            }
+    
+    // MARK: - Leave Balance Listener
+    func startLeaveBalanceListener(uid: String) {
+        leaveBalanceListener?.remove()
+
+        db.collection("leave_balance")
+            .whereField("id_user", isEqualTo: db.document("users/\(uid)"))
+            .limit(to: 1)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self,
+                      let balanceDoc = snapshot?.documents.first else { return }
+
+                balanceDoc.reference.collection("item")
+                    .getDocuments { snapshot, _ in
+                        guard let itemDoc = snapshot?.documents.first else { return }
+
+                        let data = itemDoc.data()
+                        DispatchQueue.main.async {
+                            self.remainingLeaveDays = data["remaining_days"] as? Int ?? 0
                         }
-                }
-        }
+                    }
+            }
+    }
 }
