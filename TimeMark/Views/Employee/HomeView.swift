@@ -48,13 +48,18 @@ struct HomeView: View {
             }
             .onReceive(timer) { _ in currentTime = Date() }
             // Sheet camera
-            .sheet(isPresented: $vm.showCamera) {
-                CameraView { image in
-                    if let image = image {
-                        vm.onImageCaptured(image)
-                    }
-                }
-            }
+            .sheet(isPresented: $vm.showQRScanner) {
+                      QRScannerView { code in
+                          vm.onQRScanned(code)
+                      }
+                  }
+                  .sheet(isPresented: $vm.showCamera) {
+                      CameraView { image in
+                          if let image = image {
+                              vm.onImageCaptured(image)
+                          }
+                      }
+                  }
         }
     }
 

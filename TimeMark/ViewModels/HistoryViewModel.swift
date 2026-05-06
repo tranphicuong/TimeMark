@@ -94,7 +94,7 @@ class HistoryViewModel: ObservableObject {
             if let record = recordDict[dateString] {
                 result.append(record)
             } else {
-                // Ngày chưa check-in → hiển thị "VẮNG"
+               
                 result.append(AttendanceRecord(
                     id: "empty-\(dateString)",
                     data: [
