@@ -1,143 +1,205 @@
 import SwiftUI
+import FirebaseAuth
 
 struct ProfileAdminView: View {
     
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {  // Tăng spacing để thoáng hơn
-                
-                // MARK: - Avatar Section
-                VStack(spacing: 16) {
-                    ZStack {
-                        Circle()
-                            .stroke(Color.blue.opacity(0.2), lineWidth: 8)
-                            .frame(width: 160, height: 160)
-                        
-                        Image(systemName: "person.circle")
-
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 148, height: 148)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        
-                        // Verified badge
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Spacer()
-                                Image(systemName: "checkmark.seal.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundColor(.blue)
-                                    .background(
-                                        Circle()
-                                            .fill(Color.white)
-                                            .frame(width: 34, height: 34)
-                                    )
-                                    .shadow(radius: 2)
-                            }
-                        }
-                        .frame(width: 160, height: 160)
-                    }
-                    
-                    // Name + Role
-                    VStack(spacing: 6) {
-                        Text("Trần Phi Cường")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Text("NHÂN VIÊN THIẾT KẾ CAO CẤP")
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                            .fontWeight(.medium)
-                    }
-                }
-                .padding(.top, 20)
-                
-                // MARK: - Info Card
-                VStack(alignment: .leading, spacing: 18) {
-                    profileRow(icon: "building.2.fill",
-                              title: "PHÒNG BAN",
-                              value: "Phát triển Sản phẩm (R&D)")
-                    
-                    Divider()
-                    
-                    profileRow(icon: "envelope.fill",
-                              title: "EMAIL",
-                              value: "tu.nguyen@timemark.vn")
-                    
-                    // Có thể thêm nhiều row khác sau này (SĐT, Ngày vào làm, v.v.)
-                }
-                .padding(20)
-                .background(Color(.systemGray6))
-                .cornerRadius(24)           // Bo tròn lớn hơn, hiện đại hơn
-                .padding(.horizontal, 20)
-                
-                // MARK: - Action Buttons
-                VStack(spacing: 14) {
-                    // Đổi mật khẩu
-                    Button {
-                        print("Đổi mật khẩu")
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                            Text("Đổi mật khẩu")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.white)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                        )
-                        .cornerRadius(16)
-                    }
-                    
-                    // Đăng xuất
-                    Button(role: .destructive) {
-                        print("Đăng xuất")
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.right.square")
-                            Text("Đăng xuất")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.red.opacity(0.08))
-                        .foregroundColor(.red)
-                        .cornerRadius(16)
-                    }
-                }
-                .padding(.horizontal, 20)
-                
-                Spacer(minLength: 40)
-            }
-        }
-        .navigationTitle("Hồ sơ")
-        .navigationBarTitleDisplayMode(.inline)
+    @StateObject private var authVM = AuthViewModel.shared
+    
+    @State private var avatarURL: String = ""
+    
+    private var avatarStorageKey: String {
+        let uid = Auth.auth().currentUser?.uid ?? "unknown"
+        return "avatarURL_\(uid)"
     }
     
-    // MARK: - Reusable Row
+    // MARK: - Avatar
+    @State private var showSourceDialog = false
+    @State private var showCamera = false
+    @State private var showLibrary = false
+    
+    // MARK: - Logout
+    @State private var showLogoutConfirm = false
+    
+    // MARK: - Toast
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 32) {
+                    
+                    // MARK: - Avatar
+                    VStack(spacing: 16) {
+                        ZStack {
+                            AvatarView(size: 148, avatarURL: avatarURL)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.blue.opacity(0.2), lineWidth: 8)
+                                        .frame(width: 160, height: 160)
+                                )
+                                .onTapGesture {
+                                    showSourceDialog = true
+                                }
+                        }
+                        
+                        VStack(spacing: 6) {
+                            Text(authVM.userName.isEmpty ? "No name" : authVM.userName)
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            
+                            Text(authVM.userPosition.isEmpty ? "NHÂN VIÊN" : authVM.userPosition)
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    .padding(.top, 20)
+                    
+                    // MARK: - Info
+                    VStack(alignment: .leading, spacing: 18) {
+                        profileRow(icon: "building.2.fill",
+                                   title: "PHÒNG BAN",
+                                   value: authVM.userDepartment.isEmpty ? "Chưa có phòng ban" : authVM.userDepartment)
+                        
+                        Divider()
+                        
+                        profileRow(icon: "envelope.fill",
+                                   title: "EMAIL",
+                                   value: authVM.userEmail.isEmpty ? "none" : authVM.userEmail)
+                    }
+                    .padding(20)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(24)
+                    .padding(.horizontal, 20)
+                    
+                    // MARK: - Actions
+                    VStack(spacing: 14) {
+                        NavigationLink {
+                            ChangePasswordView()
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.clockwise")
+                                Text("Đổi mật khẩu")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.blue)
+                            .cornerRadius(16)
+                        }
+                        
+                        Button(role: .destructive) {
+                            showLogoutConfirm = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.right.square")
+                                Text("Đăng xuất")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.red.opacity(0.08))
+                            .foregroundColor(.red)
+                            .cornerRadius(16)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    Spacer(minLength: 40)
+                }
+            }
+            .navigationTitle("Hồ sơ")
+            
+            .confirmationDialog("Chọn ảnh đại diện", isPresented: $showSourceDialog) {
+                Button("Chụp ảnh") { showCamera = true }
+                Button("Chọn từ thư viện") { showLibrary = true }
+                Button("Huỷ", role: .cancel) {}
+            }
+            
+            .sheet(isPresented: $showCamera) {
+                CameraView { image in
+                    if let img = image { handleUpload(img) }
+                }
+            }
+            
+            .sheet(isPresented: $showLibrary) {
+                ImagePicker(sourceType: .photoLibrary) { image in
+                    if let img = image { handleUpload(img) }
+                }
+            }
+            
+            .confirmationDialog("Bạn có chắc muốn đăng xuất?", isPresented: $showLogoutConfirm) {
+                Button("Đăng xuất", role: .destructive) {
+                    authVM.logout()
+              
+                    UserDefaults.standard.removeObject(forKey: avatarStorageKey)
+                    avatarURL = ""
+                    showToastMessage(message: "Đã đăng xuất")
+                }
+                Button("Huỷ", role: .cancel) {}
+            }
+            
+            .overlay(
+                VStack {
+                    Spacer()
+                    if showToast {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text(toastMessage)
+                        }
+                        .padding()
+                        .background(Color.black.opacity(0.85))
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .padding(.bottom, 40)
+                    }
+                }
+            )
+            .onAppear {
+                UserService.shared.loadAvatar{
+                    url in avatarURL = url
+                }
+            }
+        }
+    }
+    
+   
+    // MARK: - Upload
+    func handleUpload(_ image: UIImage) {
+        AvatarService.shared.upload(image: image) { success, url in
+            if success, let url = url, !url.isEmpty {
+                avatarURL = url
+                UserDefaults.standard.set(url, forKey: avatarStorageKey)
+                UserService.shared.updateAvatar(url: url)
+                showToastMessage(message: "Cập nhật avatar thành công")
+            } else {
+                showToastMessage(message: "Upload thất bại")
+            }
+        }
+    }
+    
+    func showToastMessage(message: String) {
+        toastMessage = message
+        withAnimation { showToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation { showToast = false }
+        }
+    }
+    
     private func profileRow(icon: String, title: String, value: String) -> some View {
         HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.title3)
                 .foregroundColor(.blue)
                 .frame(width: 28)
             
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading) {
                 Text(title)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                    .fontWeight(.medium)
                 
                 Text(value)
                     .font(.body)
-                    .fontWeight(.medium)
             }
-            
             Spacer()
         }
     }

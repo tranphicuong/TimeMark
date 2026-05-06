@@ -10,35 +10,18 @@ struct ApprovalListView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            HStack {
-                Button(action: {}) {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                }
-                Spacer()
-                Text("TimeMark Admin")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                Spacer()
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .frame(width: 35, height: 35)
-                    .foregroundColor(.gray)
-            }
-            .padding(.horizontal)
-            .padding(.top, 10)
+
             
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     // Title Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("HỆ THỐNG QUẢN LÝ")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.blue)
                         
                         Text("Phê duyệt nghỉ phép")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                         
                         Text("Xem xét và xử lý các yêu cầu nghỉ phép đang chờ xử lý từ đội ngũ nhân viên.")
                             .font(.subheadline)

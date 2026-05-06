@@ -159,25 +159,25 @@ export const deleteDepartmentService = async (id: string) => {
 
   const departmentRef = adminDb.doc(`department/${id}`);
 
-  // 🔥 check tồn tại
+  //  check tồn tại
   const depSnap = await departmentRef.get();
   if (!depSnap.exists) {
     throw new Error("Department not found");
   }
 
-  // 🔥 check còn user không
+  //  check còn user không
   const userSnapshot = await adminDb
     .collection("users")
     .where("id_department", "==", departmentRef)
     .where("isDeleted", "==", false)
-    .limit(1) // 🔥 tối ưu, chỉ cần biết có hay không
+    .limit(1) // tối ưu, chỉ cần biết có hay không
     .get();
 
   if (!userSnapshot.empty) {
     throw new Error("Department still has users");
   }
 
-  // 🔥 soft delete (KHÔNG xóa thật)
+  // soft delete (KHÔNG xóa thật)
   await departmentRef.update({
     isDeleted: true,
     deleted_at: new Date(),
@@ -188,7 +188,7 @@ export const deleteDepartmentService = async (id: string) => {
     message: "Department deleted",
   };
 };
-
+//hàm lấy các phòng ban chưa remove
 export const getAllDepartmentsService = async () => {
   const snapshot = await adminDb.collection("department").get();
   return snapshot.docs
@@ -200,4 +200,17 @@ export const getAllDepartmentsService = async () => {
       };
     })
     .filter((dept) => dept.isDeleted !== true);
+};
+//hàm lấy các phòng ban đã bị xóa
+export const getDeletedDepartmentsService = async () => {
+  const snapshot = await adminDb.collection("department").get();
+  return snapshot.docs
+    .map((doc) => {
+      const data = doc.data() as { isDeleted?: boolean; [key: string]: any };
+      return {
+        id: doc.id,
+        ...data,
+      };
+    })
+    .filter((dept) => dept.isDeleted === true);
 };

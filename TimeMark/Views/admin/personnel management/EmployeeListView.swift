@@ -29,22 +29,7 @@ struct EmployeeListView: View {
     var body: some View {
         VStack(spacing: 0) {
             
-            // Header
-            HStack {
-                Button(action: {}) {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.title2)
-                }
-                Spacer()
-                Text("TimeMark Admin")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                Spacer()
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .frame(width: 35, height: 35)
-            }
-            .padding()
+           
             
             // Title + Search Section
             VStack(alignment: .leading, spacing: 15) {

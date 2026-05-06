@@ -54,7 +54,7 @@ class EmployeeViewModel: ObservableObject {
     }
     // lấy tất cả user cho playoff
     func fetchDeletedEmployees() {
-        UserService.shared.getAllDeletedUsers { data, error in
+        UserServices.shared.getAllDeletedUsers { data, error in
             if let error = error {
                 print("❌ Deleted API ERROR:", error)
                 return
@@ -97,7 +97,7 @@ class EmployeeViewModel: ObservableObject {
     ) {
         let newStatus = employee.status != .active
         
-        UserService.shared.toggleUserStatus(
+        UserServices.shared.toggleUserStatus(
             uid: employee.id,
             isActive: newStatus
         ) { [weak self] result in
@@ -118,7 +118,7 @@ class EmployeeViewModel: ObservableObject {
         employee: Employee,
         completion: @escaping () -> Void
     ) {
-        UserService.shared.deleteUser(
+        UserServices.shared.deleteUser(
             uid: employee.id
         ) { [weak self] result in
             DispatchQueue.main.async {
@@ -140,7 +140,7 @@ class EmployeeViewModel: ObservableObject {
         positionId: String,
         completion: @escaping () -> Void
     ) {
-        UserService.shared.editUser(
+        UserServices.shared.editUser(
             uid: employee.id,
             idPosition: positionId,
             idDepartment: departmentId

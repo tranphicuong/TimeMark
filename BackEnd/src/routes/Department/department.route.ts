@@ -70,6 +70,8 @@ router.delete("/:id", async (req, res) => {
     });
   }
 });
+
+//lay tat ca cac phong phong ban
 router.get("/", async (req, res) => {
   try {
     const result = await getAllDepartmentsService();

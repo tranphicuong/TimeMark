@@ -1,16 +1,16 @@
 import express from "express";
 import {
-    createLeaveType,
-    getLeaveTypes,
+  getLeaveTypeById,
+  getLeaveTypes,
 } from "../../services/OnLeave/LeaveType.service";
 
 const router = express.Router();
 
-router.post("/create", async (req, res) => {
+router.get("/", async (_req, res) => {
   try {
-    const result = await createLeaveType(req.body);
+    const result = await getLeaveTypes();
     return res.status(200).json({
-      message: "create leave type success",
+      message: "get leave types success",
       data: result,
     });
   } catch (error: any) {
@@ -19,11 +19,12 @@ router.post("/create", async (req, res) => {
     });
   }
 });
-router.get("/", async (_req, res) => {
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const result = await getLeaveTypes();
+    const result = await getLeaveTypeById(id);
     return res.status(200).json({
-      message: "get leave types success",
+      message: "get leave type success",
       data: result,
     });
   } catch (error: any) {

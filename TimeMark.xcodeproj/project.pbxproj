@@ -7,13 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		18794A932F84149100127398 /* Department.txt in Resources */ = {isa = PBXBuildFile; fileRef = 18794A922F84149100127398 /* Department.txt */; };
 		5E8898B52F800669004FD72F /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 5E8898B42F800669004FD72F /* FirebaseAuth */; };
 		5E8898B72F800669004FD72F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 5E8898B62F800669004FD72F /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		18794A922F84149100127398 /* Department.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Department.txt; sourceTree = "<group>"; };
 		5E37FBBC2F71B2AF0011A51D /* TimeMark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeMark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -43,7 +41,6 @@
 			children = (
 				5E37FBBE2F71B2AF0011A51D /* TimeMark */,
 				5E37FBBD2F71B2AF0011A51D /* Products */,
-				18794A922F84149100127398 /* Department.txt */,
 			);
 			sourceTree = "<group>";
 		};
@@ -124,7 +121,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				18794A932F84149100127398 /* Department.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,3 +17,18 @@ struct PositionListResponse: Codable {
     let data: [Position]
 }
 
+struct PositionActionData: Codable {
+    let id: String
+    let message: String
+}
+
+struct PositionActionResponse: Codable {
+    let success: Bool
+    let data: PositionActionData
+}
+
+
+struct DeletePositionResponse: Codable {
+    let success: Bool
+    let message: String
+}

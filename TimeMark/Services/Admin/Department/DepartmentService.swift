@@ -15,7 +15,66 @@ final class DepartmentService {
             ]
         )
     }
+    // MARK: - Get All Departments
+    func getAllDepartments(
+        completion: @escaping (Result<[DepartmentData], Error>) -> Void
+    ) {
+        APIService.shared.request(
+            endpoint: "/api/department",
+            method: "GET"
+        ) { data, error in
 
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            guard let data = data else {
+                completion(.failure(self.noDataError))
+                return
+            }
+
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📦 Get All Departments Response:", jsonString)
+            }
+
+            do {
+                let decoded = try JSONDecoder().decode(
+                    DepartmentListResponse.self,
+                    from: data
+                )
+
+                var results: [DepartmentData] = []
+                let group = DispatchGroup()
+
+                for item in decoded.data {
+                    group.enter()
+
+                    DepartmentService.shared.getDepartmentUsers(
+                        departmentId: item.id
+                    ) { result in
+                        switch result {
+                        case .success(let department):
+                            results.append(department)
+
+                        case .failure(let error):
+                            print("❌ Lỗi department \(item.id):", error.localizedDescription)
+                        }
+
+                        group.leave()
+                    }
+                }
+
+                group.notify(queue: .main) {
+                    completion(.success(results))
+                }
+
+            } catch {
+                print("❌ Decode departments error:", error)
+                completion(.failure(error))
+            }
+        }
+    }
     // MARK: - Get Department Users
     func getDepartmentUsers(
         departmentId: String,

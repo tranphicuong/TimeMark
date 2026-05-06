@@ -203,7 +203,7 @@ struct AddEmployeeView: View {
     }
     
     func createUserRequest() {
-        UserService.shared.createUser(
+        UserServices.shared.createUser(
             email: email,
             password: password,
             name: fullName,
