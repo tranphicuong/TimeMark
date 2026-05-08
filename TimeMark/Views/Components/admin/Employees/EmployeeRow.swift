@@ -1,42 +1,58 @@
 import SwiftUI
 struct EmployeeRow: View {
-    let employee: EmployeeColor
-    
+    let employee: LeaveBalance
+
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(employee.avatarColor.opacity(0.2))
-                    .frame(width: 40, height: 40)
-                Text(String(employee.name.split(separator: " ").last?.prefix(2) ?? ""))
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(employee.avatarColor)
+            // Avatar
+            AsyncImage(url: URL(string: employee.avatarURL)) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 44, height: 44)
+                        .clipShape(Circle())
+                case .failure, .empty:
+                    Circle()
+                        .fill(Color.blue.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                        .overlay(
+                            Text(String(employee.name.prefix(1)))
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.blue)
+                        )
+                @unknown default:
+                    Circle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 44, height: 44)
+                }
             }
-            
+
+            // Tên + phòng ban
             VStack(alignment: .leading, spacing: 2) {
                 Text(employee.name)
-                    .font(.system(size: 15, weight: .bold))
-                Text("Mã NV: \(employee.code) • \(employee.department)")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("\(employee.position) · \(employee.department)")
                     .font(.system(size: 12))
                     .foregroundColor(.gray)
+                    .lineLimit(1)
             }
-            
+
             Spacer()
-            
-            Text("\(employee.leaveDays)")
-                .font(.system(size: 14, weight: .bold))
-                .frame(width: 44, height: 32)
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-            
-            Text(employee.remainingDays)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.blue)
-                .frame(width: 55, height: 32)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
+
+            // Số ngày
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(employee.total_days) ngày")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.blue)
+                Text("còn \(employee.remaining_days)")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
         }
         .padding(.vertical, 12)
+        .padding(.horizontal, 4)
     }
 }
 

@@ -3,7 +3,8 @@ import SwiftUI
 // MARK: - Shift Settings View
 struct ShiftSettingsView: View {
     
-    // ✅ DÙNG Date (không dùng String nữa)
+    @StateObject private var viewModel = WorkScheduleViewModel()
+    
     @State private var startDate = Date()
     @State private var endDate = Date()
     @State private var lateLimit = "15"
@@ -35,25 +36,16 @@ struct ShiftSettingsView: View {
                                 Circle()
                                     .fill(Color.blue.opacity(0.1))
                                     .frame(width: 32, height: 32)
-                                
                                 Image(systemName: "clock.fill")
                                     .foregroundColor(.blue)
                             }
-                            
                             Text("Thời gian làm việc")
                                 .font(.system(size: 16, weight: .bold))
                         }
                         
                         HStack(spacing: 12) {
-                            CustomTimePickerField(
-                                label: "GIỜ BẮT ĐẦU",
-                                time: $startDate
-                            )
-                            
-                            CustomTimePickerField(
-                                label: "GIỜ KẾT THÚC",
-                                time: $endDate
-                            )
+                            CustomTimePickerField(label: "GIỜ BẮT ĐẦU", time: $startDate)
+                            CustomTimePickerField(label: "GIỜ KẾT THÚC", time: $endDate)
                         }
                     }
                     .padding(20)
@@ -67,11 +59,9 @@ struct ShiftSettingsView: View {
                                 Circle()
                                     .fill(Color.orange.opacity(0.1))
                                     .frame(width: 32, height: 32)
-                                
                                 Image(systemName: "bell.fill")
                                     .foregroundColor(.orange)
                             }
-                            
                             Text("Quy tắc đi trễ")
                                 .font(.system(size: 16, weight: .bold))
                         }
@@ -99,7 +89,6 @@ struct ShiftSettingsView: View {
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundColor(.gray)
-                            
                             Text("Nhân viên check-in sau thời gian này sẽ bị đánh dấu là Đi trễ.")
                                 .font(.system(size: 13))
                                 .foregroundColor(.gray)
@@ -117,9 +106,14 @@ struct ShiftSettingsView: View {
                         validate()
                     }) {
                         HStack {
-                            Image(systemName: "tray.and.arrow.down")
-                            Text("Lưu cài đặt")
-                                .fontWeight(.bold)
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "tray.and.arrow.down")
+                                Text("Lưu cài đặt")
+                                    .fontWeight(.bold)
+                            }
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -127,6 +121,7 @@ struct ShiftSettingsView: View {
                         .foregroundColor(.white)
                         .cornerRadius(25)
                     }
+                    .disabled(viewModel.isLoading)
                     .padding(.top, 20)
                 }
                 .padding(.horizontal, 20)
@@ -134,6 +129,15 @@ struct ShiftSettingsView: View {
             .background(Color(uiColor: .systemGroupedBackground))
         }
         .navigationBarTitle("Cài đặt ca làm việc", displayMode: .inline)
+        .onAppear {
+            viewModel.fetchWorkSchedule()
+        }
+        .onChange(of: viewModel.workSchedule) { schedule in
+            guard let schedule = schedule else { return }
+            startDate = schedule.checkInDate
+            endDate = schedule.checkOutDate
+            lateLimit = "\(schedule.late_after_minute)"
+        }
         
         // ❌ ERROR ALERT
         .alert("Lỗi", isPresented: $showError) {
@@ -142,14 +146,29 @@ struct ShiftSettingsView: View {
             Text(errorMessage)
         }
         
+        // ❌ ERROR VM ALERT
+        .alert("Lỗi", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(viewModel.errorMessage)
+        }
+        
+        // ✅ SUCCESS ALERT
+        .alert("Thành công", isPresented: $viewModel.showSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Cập nhật thành công!")
+        }
+        
         // ✅ CONFIRM ALERT
         .alert("Xác nhận", isPresented: $showConfirm) {
             Button("Huỷ", role: .cancel) {}
-            
             Button("Xác nhận") {
-                print("Start:", formatTime(startDate))
-                print("End:", formatTime(endDate))
-                print("Late:", lateLimit)
+                viewModel.saveWorkSchedule(
+                    checkIn: startDate,
+                    checkOut: endDate,
+                    lateAfterMinute: Int(lateLimit) ?? 15
+                )
             }
         } message: {
             Text("Bạn có chắc muốn lưu cài đặt này?")
@@ -205,9 +224,7 @@ struct CustomTimePickerField: View {
                 HStack {
                     Text(formatTime(time))
                         .foregroundColor(.black)
-                    
                     Spacer()
-                    
                     Image(systemName: "clock")
                         .foregroundColor(.blue)
                 }

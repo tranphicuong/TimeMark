@@ -134,19 +134,19 @@ struct LeaveRequestView: View {
             .navigationTitle("Gửi đơn nghỉ phép")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onAppear {
-            fetchLeaveTypes()
-        }
+//        .onAppear {
+//            fetchLeaveTypes()
+//        }
     }
 
     // MARK: - Functions
-    private func fetchLeaveTypes() {
-        LeaveTypeService.shared.fetchLeaveTypes { types in
-            leaveTypes = types
-            selectedLeaveType = types.first
-        }
-    }
-
+//    private func fetchLeaveTypes() {
+//        LeaveTypeService.shared.fetchLeaveTypes { types in
+//            leaveTypes = types
+//            selectedLeaveType = types.first
+//        }
+//    }
+ 
     private func submitLeaveRequest() {
         print("Loại nghỉ:", selectedLeaveType?.name ?? "")
         print("Từ:", startDate)

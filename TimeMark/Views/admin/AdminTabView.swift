@@ -8,6 +8,11 @@ struct AdminTabView: View {
                     Image(systemName:"square.grid.2x2.fill")
                     Text("Dashboard")
                 }
+            CheckInQRView()
+                .tabItem {
+                    Image(systemName: "qrcode.viewfinder")
+                    Text("Check In")
+                }
             NavigationStack {
                            EmployeeListView()
                        }
@@ -25,6 +30,7 @@ struct AdminTabView: View {
                     Image(systemName: "gearshape.fill")
                     Text("cài đặt")
                 }
+            
         }
         .accentColor(.blue)
 

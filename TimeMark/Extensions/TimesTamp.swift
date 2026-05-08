@@ -17,7 +17,7 @@ extension FirestoreTimestamp {
         return formatter.string(from: toDate)
     }
 }
-struct FirebaseTimestamp: Decodable {
+struct FirebaseTimestamp: Decodable,Equatable {
     let _seconds: Int
     let _nanoseconds: Int
 

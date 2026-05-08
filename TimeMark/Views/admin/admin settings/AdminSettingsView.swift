@@ -29,6 +29,17 @@ struct AdminSettingsView: View {
                         NavigationLink(destination: LeaveManagementView()){
                             SettingRow(icon: "calendar", iconColor: .orange, iconBgColor: Color.orange.opacity(0.1), title: "Chỉnh sửa ngày phép năm")
                         }
+                        Divider().padding(.leading, 70)
+                                                
+                        // ← NÚT MỚI: Xuất báo cáo chấm công
+                        NavigationLink(destination: PayrollExportView()) {
+                            SettingRow(
+                                icon: "doc.badge.arrow.up.fill",
+                                iconColor: .green,
+                                iconBgColor: Color.green.opacity(0.1),
+                                title: "Xuất file chấm công tháng"
+                            )
+                        }
                     }
                     .background(Color.white)
                     .cornerRadius(16)
@@ -41,10 +52,7 @@ struct AdminSettingsView: View {
                         }
                         
                         Divider().padding(.leading, 70)
-                        NavigationLink(destination: LoginView())
-                        {
-                            SettingRow(icon: "rectangle.portrait.and.arrow.right", iconColor: .red, iconBgColor: Color.red.opacity(0.1), title: "Đăng xuất", isDestructive: true)
-                        }
+                       
                     }
                     .background(Color.white)
                     .cornerRadius(16)
