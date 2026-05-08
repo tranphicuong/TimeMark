@@ -16,6 +16,9 @@ class HomeViewModel: ObservableObject {
     @Published var showCamera: Bool = false
     @Published var cameraMode: CameraMode = .checkIn
     @Published var remainingLeaveDays: Int = 0
+    @Published var workStartTime: String = "08:00"
+    @Published var workEndTime: String = "17:00"
+    @Published var currentQRToken: String = ""
     
     // MARK: - QR Check-in flow
     @Published var showQRScanner: Bool = false
@@ -37,15 +40,45 @@ class HomeViewModel: ObservableObject {
     private var leaveBalanceListener: ListenerRegistration?
     private var leaveBalanceItemListener: ListenerRegistration?
     private var listeningUID: String?
-    
+    private var authStateListener: AuthStateDidChangeListenerHandle?
     static let shared = HomeViewModel()
     
     // MARK: - Init
     init() {
+        setupAuthListener()
+        loadWorkSchedule()
+        loadCurrentQRToken()
         startRealtimeAttendanceListener()
         startLeaveBalanceListener()
     }
-    
+    // MARK: - Auth State Listener
+    private func setupAuthListener() {
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self = self else { return }
+            if let user = user {
+                print("User logged in: \(user.uid)")
+                self.setupListenersForCurrentUser()
+            } else {
+                print("User logged out")
+                self.resetAllData()
+            }
+        }
+    }
+    // MARK: - Work Schedule
+    func loadWorkSchedule() {
+        AttendanceService.shared.loadWorkSchedule { [weak self] success in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                let start = AttendanceService.shared.getWorkStartString()
+                let end = AttendanceService.shared.getWorkEndString()
+                
+                self.workStartTime = start
+                self.workEndTime   = end
+                
+            }
+        }
+    }
     private func stopAllListeners() {
         attendanceListener?.remove()
         attendanceListener = nil
@@ -53,8 +86,12 @@ class HomeViewModel: ObservableObject {
         leaveBalanceListener = nil
         leaveBalanceItemListener?.remove()
         leaveBalanceItemListener = nil
-        midnightTimer?.invalidate()
-        midnightTimer = nil
+        
+        // Remove date observer
+        if let observer = dateChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            dateChangeObserver = nil
+        }
     }
     
     private var midnightTimer: Timer?
@@ -65,7 +102,10 @@ class HomeViewModel: ObservableObject {
         
         let userRef = db.document("users/\(uid)")
         let today = todayString()
+        
+        // Remove listener cũ trước khi tạo mới
         attendanceListener?.remove()
+        
         attendanceListener = db.collection("attendance")
             .whereField("id_user", isEqualTo: userRef)
             .whereField("date", isEqualTo: today)
@@ -78,36 +118,58 @@ class HomeViewModel: ObservableObject {
                 }
                 
                 DispatchQueue.main.async {
-                    guard let doc = snapshot?.documents.first else {
-                      
+                    if let doc = snapshot?.documents.first {
+                        self.updateFromDocument(doc)
+                    } else {
                         self.resetDailyState()
-                        return
-                    }
-                    
-                    let data = doc.data()
-                    
-                    if let checkIn = data["check_in"] as? Timestamp {
-                        self.isCheckedIn = true
-                        self.checkInTime = checkIn.dateValue()
-                    } else {
-                        self.isCheckedIn = false
-                        self.checkInTime = nil
-                    }
-                    
-                    if let checkOut = data["check_out"] as? Timestamp {
-                        self.isCheckedOut = true
-                        self.checkOutTime = checkOut.dateValue()
-                    } else {
-                        self.isCheckedOut = false
-                        self.checkOutTime = nil
                     }
                 }
             }
         
-       
-        scheduleMidnightRestart()
+        // Bắt đầu theo dõi thay đổi ngày
+        startDateChangeObserver()
     }
-    
+    // MARK: - Update UI
+    private func updateFromDocument(_ doc: QueryDocumentSnapshot) {
+        let data = doc.data()
+        
+        if let checkIn = data["check_in"] as? Timestamp {
+            self.isCheckedIn = true
+            self.checkInTime = checkIn.dateValue()
+        } else {
+            self.isCheckedIn = false
+            self.checkInTime = nil
+        }
+        
+        if let checkOut = data["check_out"] as? Timestamp {
+            self.isCheckedOut = true
+            self.checkOutTime = checkOut.dateValue()
+        } else {
+            self.isCheckedOut = false
+            self.checkOutTime = nil
+        }
+    }
+
+    // MARK: - Theo dõi thay đổi ngày
+    private var dateChangeObserver: NSObjectProtocol?
+
+    private func startDateChangeObserver() {
+       
+        if let observer = dateChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
+        dateChangeObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.significantTimeChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+         
+            self.resetDailyState()
+            self.startRealtimeAttendanceListener()
+        }
+    }
    
     private func scheduleMidnightRestart() {
         midnightTimer?.invalidate()
@@ -129,9 +191,12 @@ class HomeViewModel: ObservableObject {
     // MARK: - Cleanup
     deinit {
         stopAllListeners()
+        if let listener = authStateListener {
+            Auth.auth().removeStateDidChangeListener(listener)
+        }
     }
     
-    private func todayString() -> String {
+    public func todayString() -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = TimeZone.current
@@ -174,22 +239,52 @@ class HomeViewModel: ObservableObject {
         }
         
         cameraMode = .checkOut
-        showCamera = true
+        qrVerified = false
+        showQRScanner = true
+
     }
     
+    // MARK: - QR Token
+    func loadCurrentQRToken() {
+        attendanceService.getCurrentQRToken { [weak self] token in
+            guard let self = self, let token = token else { return }
+            DispatchQueue.main.async {
+                self.currentQRToken = token
+                print(" Loaded QR Token: \(token.prefix(20))...")
+            }
+        }
+    }
+
     // MARK: - Xử lý kết quả QR scan
-   
-    private let validQRCode = "TIMEMARK_CHECKIN_QR"
-    
     func onQRScanned(_ code: String) {
         showQRScanner = false
-        guard code == validQRCode else {
-            showMessage("Mã QR không hợp lệ. Vui lòng dùng mã QR của công ty.", success: false)
+        
+        guard !code.isEmpty && code == currentQRToken else {
+            showMessage("Mã QR không hợp lệ hoặc đã hết hạn.", success: false)
             return
         }
-       
+        
         qrVerified = true
         showCamera = true
+        markQRTokenAsUsed()
+    }
+
+    // MARK: - QR Token Management
+    private func markQRTokenAsUsed() {
+        guard !currentQRToken.isEmpty else { return }
+        
+        db.collection("qr_checkin")
+            .whereField("token", isEqualTo: currentQRToken)
+            .getDocuments { [weak self] snapshot, error in
+                guard let doc = snapshot?.documents.first else { return }
+                
+                doc.reference.updateData([
+                    "isUsed": true,
+                    "usedAt": Timestamp(date: Date())
+                ]) { _ in
+                    self?.loadCurrentQRToken()
+                }
+            }
     }
     
     // MARK: - Nhận ảnh từ Camera
@@ -243,13 +338,15 @@ class HomeViewModel: ObservableObject {
     // MARK: - Public reset
     func resetAllData() {
         stopAllListeners()
+        listeningUID = nil
+        
         isCheckedIn = false
         isCheckedOut = false
         checkInTime = nil
         checkOutTime = nil
         remainingLeaveDays = 0
         qrVerified = false
-        listeningUID = nil
+        currentQRToken = ""
     }
     
     // MARK: - Public setup 
@@ -260,6 +357,8 @@ class HomeViewModel: ObservableObject {
         listeningUID = uid
         startRealtimeAttendanceListener()
         startLeaveBalanceListener()
+        loadWorkSchedule()
+        loadCurrentQRToken()
     }
     
     // MARK: - Toast
@@ -323,7 +422,7 @@ class HomeViewModel: ObservableObject {
                 guard let self = self,
                       let balanceDoc = snapshot?.documents.first else { return }
                 
-             
+          
                 self.leaveBalanceItemListener?.remove()
                 
                 self.leaveBalanceItemListener = balanceDoc.reference

@@ -7,7 +7,7 @@ struct HomeView: View {
 
     @StateObject private var vm = HomeViewModel.shared
     @AppStorage("userName") var userName = "Nhân viên"
-
+    @State private var currentDateString = ""
     @State private var currentTime = Date()
     @State private var avatarURL: String = ""
 
@@ -15,8 +15,6 @@ struct HomeView: View {
 
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    let workStart = "08:00"
-    let workEnd   = "17:00"
 
     var body: some View {
         NavigationStack {
@@ -46,7 +44,12 @@ struct HomeView: View {
                         .padding(.bottom, 20)
                 }
             }
-            .onReceive(timer) { _ in currentTime = Date() }
+            .onReceive(timer) { _ in currentTime = Date()
+                checkForNewDay()
+            }
+            .onAppear{
+                currentDateString = vm.todayString()
+            }
             // Sheet camera
             .sheet(isPresented: $vm.showQRScanner) {
                       QRScannerView { code in
@@ -62,6 +65,16 @@ struct HomeView: View {
                   }
         }
     }
+    private func checkForNewDay() {
+            let today = vm.todayString()
+            if today != currentDateString {
+                print("🔄 HomeView detected new day: \(today)")
+                currentDateString = today
+                // Yêu cầu ViewModel reset và refresh listener
+                vm.resetDailyState()
+                vm.setupListenersForCurrentUser()
+            }
+        }
 
     // MARK: - Check-in Card
     var checkInCard: some View {
@@ -219,9 +232,11 @@ struct HomeView: View {
             Text("Ca làm việc hôm nay")
                 .font(.caption)
                 .foregroundColor(.gray)
-            Text("\(workStart) - \(workEnd)")
+            
+            Text("\(vm.workStartTime) - \(vm.workEndTime)")
                 .font(.subheadline)
                 .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
