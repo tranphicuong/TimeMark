@@ -123,7 +123,7 @@ class AttendanceService {
         let workStart = getTodayWorkStart()
         
         let lateMinutes = max(0, Int(now.timeIntervalSince(workStart) / 60))
-        let status = lateMinutes <= 0 ? "Đúng giờ" : "Trễ"
+        let status = lateMinutes <= 0 ? "on-time" : "late"
         
         db.collection("attendance")
             .whereField("id_user", isEqualTo: userRef)

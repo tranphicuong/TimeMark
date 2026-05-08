@@ -42,6 +42,7 @@ struct HistoryView: View {
                         statCard(color: .green,  title: "ĐI LÀM",   value: "\(vm.workDays)", sub: "Ngày công")
                         statCard(color: .orange, title: "TRỄ",      value: "\(vm.lateCount)", sub: "Lần")
                         statCard(color: .red,    title: "VẮNG",     value: "\(vm.absentCount)", sub: "Ngày")
+                        statCard(color: .red,    title: "NGHỈ PHÉP",     value: "\(vm.leaveCount)", sub: "Ngày")
                       
                     }
                     .padding(.horizontal)
@@ -154,14 +155,14 @@ struct HistoryView: View {
                 Text(record.date)
                     .font(.headline)
                 Spacer()
-                Text(record.status ?? "Đúng giờ")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background((record.status ?? "").lowercased().contains("trễ") ? Color.orange.opacity(0.15) : Color.green.opacity(0.15))
-                    .foregroundColor((record.status ?? "").lowercased().contains("trễ") ? .orange : .green)
-                    .cornerRadius(20)
+                Text(record.displayStatus)        
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(record.statusColor.opacity(0.15))
+                                .foregroundColor(record.statusColor)
+                                .cornerRadius(20)
             }
             
             Divider()
