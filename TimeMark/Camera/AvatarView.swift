@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+=======
+//
+//  AvatarView.swift
+//  TimeMark
+//
+//  Created by Rebel on 5/5/26.
+//
+
+>>>>>>> tnd
 import SwiftUI
 
 struct AvatarView: View {

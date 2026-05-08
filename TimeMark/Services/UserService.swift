@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+=======
+//
+//  UserService.swift
+//  TimeMark
+//
+//  Created by Rebel on 5/5/26.
+//
+
+>>>>>>> tnd
 import FirebaseFirestore
 import FirebaseAuth
 

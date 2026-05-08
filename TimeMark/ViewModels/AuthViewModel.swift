@@ -92,7 +92,11 @@ class AuthViewModel: ObservableObject {
                 if let uid = result?.user.uid {
                     self.fetchUserInfo(uid: uid)
                     
+<<<<<<< HEAD
                     HomeViewModel.shared.startLeaveBalanceListener(uid: uid)
+=======
+//                    HomeViewModel.shared.setupListenersForCurrentUser()
+>>>>>>> tnd
                 }
             }
         }
@@ -210,7 +214,11 @@ class AuthViewModel: ObservableObject {
     // MARK: - Đăng xuất
     func logout() {
         do {
+<<<<<<< HEAD
             HomeViewModel.shared.resetDailyState()
+=======
+//            HomeViewModel.shared.resetAllData()
+>>>>>>> tnd
             try Auth.auth().signOut()
             resetUserData()
         } catch {

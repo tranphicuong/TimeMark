@@ -10,5 +10,5 @@ struct TimeMarkApp: App {
         WindowGroup {
             RootView()
         }
-    }
+    } 
 }

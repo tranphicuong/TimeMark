@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+=======
+//
+//  CameraView.swift
+//  TimeMark
+//
+//  Created by Rebel on 5/5/26.
+//
+
+>>>>>>> tnd
 import SwiftUI
 import UIKit
 
@@ -17,7 +27,11 @@ struct CameraPicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
+<<<<<<< HEAD
         picker.cameraDevice = .front         
+=======
+        picker.cameraDevice = .front
+>>>>>>> tnd
         picker.allowsEditing = false
         picker.delegate = context.coordinator
         return picker

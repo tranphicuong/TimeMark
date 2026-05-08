@@ -11,12 +11,22 @@ struct LoginView: View {
 
     var body: some View {
         NavigationStack {
+            // ZStack ngoài cùng để quản lý các lớp đè lên nhau
             ZStack {
+               
                 Color(.systemGray6).ignoresSafeArea()
 
+<<<<<<< HEAD
                 VStack(spacing: 30) {
                     
                     if authVM.showError && !authVM.isAccountLocked {
+=======
+              
+                VStack(spacing: 30) {
+                    
+                    // Hiển thị lỗi (nếu có)
+                    if authVM.showError {
+>>>>>>> tnd
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.circle.fill")
                                 .foregroundColor(.red)
@@ -92,9 +102,16 @@ struct LoginView: View {
 
                         // Nút Đăng nhập
                         Button(action: {
+<<<<<<< HEAD
                             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                             authVM.showError = false
                             authVM.isAccountLocked = false
+=======
+                            // Tự động ẩn bàn phím khi bấm nút
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                            
+                            authVM.showError = false
+>>>>>>> tnd
                             authVM.login(email: email, password: password)
                         }) {
                             Text("Đăng nhập")
@@ -102,7 +119,7 @@ struct LoginView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.blue)
+                                .background(Color.blue) // Luôn xanh rực rỡ
                                 .cornerRadius(25)
                         }
                     }
@@ -117,12 +134,23 @@ struct LoginView: View {
                     Spacer()
                 }
 
+<<<<<<< HEAD
                 // Loading overlay
                 if authVM.isLoading {
                     ZStack {
                         Color.black.opacity(0.4)
                             .ignoresSafeArea()
                         
+=======
+          
+                if authVM.isLoading {
+                    ZStack {
+                        // Lớp phủ màu đen mờ bao toàn bộ màn hình
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                        
+                        // Hộp Loading chính giữa
+>>>>>>> tnd
                         VStack(spacing: 15) {
                             ProgressView()
                                 .tint(.white)
@@ -137,14 +165,23 @@ struct LoginView: View {
                         .background(Color.black.opacity(0.7))
                         .cornerRadius(15)
                     }
+<<<<<<< HEAD
                     .transition(.opacity)
                     .zIndex(1)
                 }
             }
+=======
+                    .transition(.opacity) // Hiệu ứng mờ dần khi ẩn/hiện
+                    .zIndex(1) // Đảm bảo lớp này luôn nằm trên cùng của ZStack
+                }
+            }
+          
+>>>>>>> tnd
             .animation(.easeInOut, value: authVM.isLoading)
             .navigationDestination(isPresented: $goToForgot) {
                 ForgotPasswordView()
             }
+<<<<<<< HEAD
             // MARK: - Alert tài khoản bị khoá
             .alert("Tài khoản bị khoá", isPresented: $authVM.showLockedAlert) {
                 Button("Đã hiểu", role: .cancel) {
@@ -154,6 +191,8 @@ struct LoginView: View {
             } message: {
                 Text("Tài khoản của bạn đã bị khoá bởi quản trị viên.\nVui lòng liên hệ HR hoặc admin để được hỗ trợ.")
             }
+=======
+>>>>>>> tnd
         }
     }
 }

@@ -1,0 +1,164 @@
+import SwiftUI
+
+ 
+
+struct EmployeeCard: View {
+    let employee: Employee
+    
+    // 👇 binding để control global
+    @Binding var openedID: String?
+    
+    var onEdit: () -> Void
+    var onLock: () -> Void
+    var onDelete: () -> Void
+    
+    @State private var offset: CGFloat = 0
+    
+    private let buttonWidth: CGFloat = 70
+    private let totalWidth: CGFloat = 210
+    private var isDeletedEmployee: Bool {
+        employee.status == .resigned
+    }
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            
+            // Action buttons
+            if !isDeletedEmployee {
+                HStack(spacing: 0) {
+                    ActionButton(icon: "pencil", label: "Sửa", color: .blue) {
+                        reset()
+                        onEdit()
+                    }
+                    .frame(width: buttonWidth)
+                    
+                    ActionButton(
+                        icon: employee.status == .active ? "lock.fill" : "lock.open.fill",
+                        label: employee.status == .active ? "Khóa" : "Mở",
+                        color: .orange
+                    ) {
+                        reset()
+                        onLock()
+                    }
+                    .frame(width: buttonWidth)
+                    
+                    ActionButton(icon: "trash.fill", label: "Xóa", color: .red) {
+                        reset()
+                        onDelete()
+                    }
+                    .frame(width: buttonWidth)
+                }
+                .cornerRadius(12)
+                
+            }
+            // Main card
+            HStack {
+                if employee.imageName.starts(with: "http"),
+                   let url = URL(string: employee.imageName) {
+                    
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: 50, height: 50)
+                    .clipShape(Circle())
+                    
+                } else {
+                    Image(systemName: employee.imageName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 50, height: 50)
+                        .foregroundColor(.gray)
+                }
+                VStack(alignment: .leading) {
+                    Text(employee.name).bold()
+                    Text("\(employee.position) • \(employee.id_member)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                Text(employee.status.rawValue)
+                    .font(.caption2.bold())
+                    .padding(6)
+                    .background(employee.status.color.opacity(0.2))
+                    .cornerRadius(10)
+            }
+            .padding()
+            .background(Color.white)
+            .cornerRadius(12)
+            .offset(x: offset)
+            .gesture(
+                isDeletedEmployee ? nil :
+                DragGesture()
+                    .onChanged { value in
+                        let trans = value.translation.width
+                        
+                        if trans < 0 {
+                            // 👇 set thằng đang mở
+                            if openedID != employee.id {
+                                openedID = employee.id
+                            }
+                            
+                            // 👇 fix crash animation
+                            offset = max(trans, -totalWidth)
+                        }
+                    }
+                    .onEnded { value in
+                        let shouldOpen = value.translation.width < -100
+                        
+                        withAnimation(.interactiveSpring()) {
+                            if shouldOpen {
+                                offset = -totalWidth
+                                openedID = employee.id
+                            } else {
+                                reset()
+                            }
+                        }
+                    }
+            )
+        }
+        .onChange(of: openedID) { oldValue, newValue in
+            if newValue != employee.id {
+                withAnimation {
+                    offset = 0
+                }
+            }
+        }
+    }
+    
+    private func reset() {
+        withAnimation {
+            offset = 0
+            if openedID == employee.id {
+                openedID = nil
+            }
+        }
+    }
+}
+struct ActionButton: View {
+    let icon: String
+    let label: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                Text(label)
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(color)
+        }
+    }
+}

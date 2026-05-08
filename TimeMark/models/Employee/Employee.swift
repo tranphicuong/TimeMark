@@ -1,0 +1,31 @@
+import SwiftUI
+
+//  ENUM (ĐẶT Ở ĐÂY)
+enum EmployeeStatusApi: String {
+    case active = "HOẠT ĐỘNG"
+    case onLeave = "NGHỈ PHÉP"
+    case resigned = "NGHỈ VIỆC"
+    case locked = "ĐÃ KHÓA"
+    
+    var color: Color {
+        switch self {
+        case .active: return .green
+        case .onLeave: return .gray
+        case .resigned: return .orange
+        case .locked: return .red
+        }
+    }
+}
+
+//  MODEL
+struct Employee: Identifiable {
+    let id: String
+    let email: String
+    let name: String
+    let id_member: String
+    let position: String
+    let department: String
+
+    var status: EmployeeStatusApi
+    let imageName: String
+}

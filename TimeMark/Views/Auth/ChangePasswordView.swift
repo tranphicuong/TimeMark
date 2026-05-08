@@ -1,3 +1,13 @@
+<<<<<<< HEAD
+=======
+//
+//  ChangePasswordView.swift
+//  TimeMark
+//
+//  Created by Rebel on 5/5/26.
+//
+
+>>>>>>> tnd
 import SwiftUI
 import FirebaseAuth
 

@@ -9,6 +9,7 @@ struct RootView: View {
     @StateObject private var authVM = AuthViewModel.shared
     
     var body: some View {
+<<<<<<< HEAD
         ZStack {
             
             Group {
@@ -68,3 +69,17 @@ struct RootView: View {
                }
            }
        }
+=======
+        if !hasSeenOnboarding {
+            OnboardingView()
+        } else if !isLoggedIn {	
+            LoginView()
+        } else if userRole == "admin" {
+            AdminTabView()
+        } else {
+            EmployeeTabView() // ← đã kết nối HomeView
+        }
+    }
+}
+
+>>>>>>> tnd
