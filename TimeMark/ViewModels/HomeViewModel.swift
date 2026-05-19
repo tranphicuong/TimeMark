@@ -194,6 +194,7 @@ class HomeViewModel: ObservableObject {
         if let listener = authStateListener {
             Auth.auth().removeStateDidChangeListener(listener)
         }
+        attendanceService.stopListeningQRToken()
     }
     
     public func todayString() -> String {
@@ -246,7 +247,7 @@ class HomeViewModel: ObservableObject {
     
     // MARK: - QR Token
     func loadCurrentQRToken() {
-        attendanceService.getCurrentQRToken { [weak self] token in
+        attendanceService.startListeningQRToken{ [weak self] token in
             guard let self = self, let token = token else { return }
             DispatchQueue.main.async {
                 self.currentQRToken = token

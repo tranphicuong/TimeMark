@@ -7,6 +7,7 @@ class AttendanceService {
     
     private let db = Firestore.firestore()
     static let shared = AttendanceService()
+    private var qrTokenListener: ListenerRegistration?
     
     // MARK: - Work Schedule Cache
     private var workSchedule: WorkSchedule?
@@ -21,7 +22,7 @@ class AttendanceService {
     
     // MARK: - Load Work Schedule (ĐÃ SỬA)
     func loadWorkSchedule(completion: @escaping (Bool) -> Void) {
-        print("🔍 Đang load work_schedule...")
+        print(" Đang load work_schedule...")
         
         db.collection("work_schedule")
             .limit(to: 1)
@@ -223,27 +224,34 @@ class AttendanceService {
     }
     
     // MARK: - QR Check-in Token
-    func getCurrentQRToken(completion: @escaping (String?) -> Void) {
-        db.collection("qr_checkin")
+    func startListeningQRToken(onUpdate: @escaping (String?) -> Void) {
+        qrTokenListener?.remove()
+        
+        qrTokenListener = db.collection("qr_checkin")
             .whereField("isUsed", isEqualTo: false)
-            .order(by: "createdAt", descending: true)  // Lấy token mới nhất
+            .order(by: "createdAt", descending: true)
             .limit(to: 1)
-            .getDocuments { snapshot, error in
+            .addSnapshotListener { snapshot, error in
                 if let error = error {
-                    print("❌ Lỗi lấy QR Token: \(error.localizedDescription)")
-                    completion(nil)
+                    print("Lỗi lấy QR Token: \(error.localizedDescription)")
+                    onUpdate(nil)
                     return
                 }
                 
                 guard let doc = snapshot?.documents.first,
                       let token = doc.data()["token"] as? String else {
-                    print("⚠️ Không tìm thấy QR token hợp lệ")
-                    completion(nil)
+                    print("Không tìm thấy QR token hợp lệ")
+                    onUpdate(nil)
                     return
                 }
                 
-                print("✅ Lấy QR Token thành công: \(token.prefix(20))...")
-                completion(token)
+                print("QR Token cập nhật: \(token.prefix(20))...")
+                onUpdate(token)
             }
+    }
+
+    func stopListeningQRToken() {
+        qrTokenListener?.remove()
+        qrTokenListener = nil
     }
 }

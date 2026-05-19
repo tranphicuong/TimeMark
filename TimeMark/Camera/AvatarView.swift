@@ -10,7 +10,7 @@ struct AvatarView: View {
             Circle()
                 .fill(Color.blue.opacity(0.15))
             
-            if let url = URL(string: avatarURL), !avatarURL.isEmpty {
+            if let url = URL(string: avatarURL), !avatarURL.isEmpty {		
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .empty:
