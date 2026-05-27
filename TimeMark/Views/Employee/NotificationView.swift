@@ -2,209 +2,196 @@ import SwiftUI
 
 struct NotificationView: View {
     
-    @State private var selectedTab = 0  // 0: Tất cả, 1: Chưa đọc, 2: Hệ thống
+    @StateObject private var service = NotificationService.shared
+    @State private var selectedTab = 0
+    @State private var showDeleteAllConfirm = false
+    @State private var itemToDelete: String? = nil
+    private let tabs = ["Tất cả", "Chưa đọc", "Hệ thống"]
+    
+    var filtered: [NotificationItem] {
+        switch selectedTab {
+        case 1: return service.notifications.filter { !$0.isRead }
+        case 2: return service.notifications.filter { $0.type == "system" }
+        default: return service.notifications
+        }
+    }
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    
-                    // MARK: - FILTER TABS (giống style HistoryView)
-                    HStack(spacing: 12) {
-                        ForEach(0..<3, id: \.self) { index in
-                            filterButton(title: titles[index], index: index)
+            VStack(spacing: 0) {
+                // Filter tabs
+                HStack(spacing: 10) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = i }
+                        } label: {
+                            Text(tabs[i])
+                                .font(.subheadline).fontWeight(.medium)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(selectedTab == i ? Color.blue : Color(.systemGray5))
+                                .foregroundColor(selectedTab == i ? .white : .primary)
+                                .cornerRadius(12)
                         }
                     }
-                    .padding(.horizontal)
-                    
-                    // MARK: - HÔM NAY
-                    sectionTitle("HÔM NAY")
-                    
-                    VStack(spacing: 16) {
-                        notificationItem(
-                            icon: "checkmark.circle.fill",
-                            iconColor: .green,
-                            title: "Check-in thành công",
-                            desc: "Bạn đã chấm công vào làm lúc 08:00 sáng tại văn phòng Quận 1.",
-                            time: "08:00 AM"
-                        )
-                        
-                        notificationItemWithButton(
-                            icon: "exclamationmark.circle.fill",
-                            iconColor: .orange,
-                            title: "Nhắc chưa check-in",
-                            desc: "Đã quá 15 phút so với giờ bắt đầu, vui lòng thực hiện check-in ngay.",
-                            time: "08:15 AM"
-                        )
-                    }
-                    .padding(.horizontal)
-                    
-                    // MARK: - HÔM QUA
-                    sectionTitle("HÔM QUA")
-                    
-                    VStack(spacing: 16) {
-                        notificationItem(
-                            icon: "clock.fill",
-                            iconColor: .gray,
-                            title: "Check-out thành công",
-                            desc: "Ca làm việc của bạn đã kết thúc. Hẹn gặp lại vào ngày mai!",
-                            time: "17:30 PM"
-                        )
-                        
-                        notificationItem(
-                            icon: "checkmark.circle.fill",
-                            iconColor: .green,
-                            title: "Check-in thành công",
-                            desc: "Bạn đã bắt đầu ca làm việc sớm hơn 5 phút. Điểm cộng cho sự chuyên cần!",
-                            time: "07:55 AM"
-                        )
-                    }
-                    .padding(.horizontal)
-                    
-                    Spacer(minLength: 40)
                 }
-                .padding(.top, 8)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                
+                if filtered.isEmpty {
+                    emptyView
+                } else {
+                    List {
+                        let grouped = Dictionary(grouping: filtered) {
+                            Calendar.current.startOfDay(for: $0.createdAt)
+                        }
+                        
+                        ForEach(grouped.keys.sorted(by: >), id: \.self) { date in
+                            Section(header:
+                                Text(sectionLabel(date))
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                    .textCase(.uppercase)
+                                    .padding(.top, 8)
+                            ) {
+                                ForEach(grouped[date] ?? []) { item in
+                                    notifRow(item)
+                                        .listRowSeparator(.hidden)
+                                        .listRowBackground(Color.white)
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.plain)
+                }
             }
             .background(Color(.systemGray6).ignoresSafeArea())
             .navigationTitle("Thông báo")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                if service.unreadCount > 0 {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Đọc hết") { service.markAllAsRead() }
+                    }
+                }
+                if !service.notifications.isEmpty {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(role: .destructive) {
+                            showDeleteAllConfirm = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                    }
+                }
+            }
+            // Xác nhận xóa tất cả
+            .confirmationDialog("Xoá tất cả thông báo?", isPresented: $showDeleteAllConfirm) {
+                Button("Xoá tất cả", role: .destructive) {
+                    service.deleteAllNotifications()
+                }
+                Button("Huỷ", role: .cancel) {}
+            }
+            // Xác nhận xóa từng cái
+            .confirmationDialog("Xoá thông báo này?", isPresented: Binding(
+                get: { itemToDelete != nil },
+                set: { if !$0 { itemToDelete = nil }}
+            )) {
+                Button("Xoá", role: .destructive) {
+                    if let id = itemToDelete {
+                        service.deleteNotification(id)
+                        itemToDelete = nil
+                    }
+                }
+                Button("Huỷ", role: .cancel) { itemToDelete = nil }
+            }
+            .onAppear { service.startListening() }
+            .onDisappear { service.stopListening() }
         }
     }
     
-    private let titles = ["Tất cả", "Chưa đọc", "Hệ thống"]
-    
-    // MARK: - Filter Button (style giống filter tháng ở HistoryView)
-    private func filterButton(title: String, index: Int) -> some View {
-        Text(title)
-            .font(.subheadline)
-            .fontWeight(.medium)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity)
-            .background(selectedTab == index ? Color.blue : Color(.systemGray5))
-            .foregroundColor(selectedTab == index ? .white : .primary)
-            .cornerRadius(12)
-            .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    selectedTab = index
-                }
-            }
-    }
-    
-    // MARK: - Section Title (giống HistoryView)
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.headline)
-            .fontWeight(.semibold)
-            .foregroundColor(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal)
-    }
-    
-    // MARK: - Normal Notification Item
-    private func notificationItem(
-        icon: String,
-        iconColor: Color,
-        title: String,
-        desc: String,
-        time: String
-    ) -> some View {
+    // MARK: - Row với Swipe Delete
+    @ViewBuilder
+    func notifRow(_ item: NotificationItem) -> some View {
         HStack(alignment: .top, spacing: 14) {
             ZStack {
-                Circle()
-                    .fill(iconColor.opacity(0.15))
-                    .frame(width: 44, height: 44)
-                
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundColor(iconColor)
+                Circle().fill(iconColor(item.type).opacity(0.15)).frame(width: 44, height: 44)
+                Image(systemName: iconName(item.type)).font(.title3).foregroundColor(iconColor(item.type))
             }
             
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(title)
+                    Text(item.title)
                         .font(.headline)
-                        .fontWeight(.semibold)
-                    
+                        .fontWeight(item.isRead ? .regular : .semibold)
                     Spacer()
-                    
-                    Text(time)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Text(timeAgo(item.createdAt)).font(.caption).foregroundColor(.secondary)
                 }
-                
-                Text(desc)
+                Text(item.content)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineSpacing(3)
             }
+            
+            if !item.isRead {
+                Circle().fill(Color.blue).frame(width: 8, height: 8).padding(.top, 6)
+            }
         }
-        .padding(16)
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
+        .onTapGesture {
+               if !item.isRead {
+                   service.markAsRead(item.id)
+               }
+           }
+        .padding(.vertical, 8)
+
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                itemToDelete = item.id
+            } label: {
+                Label("Xoá", systemImage: "trash.fill")
+            }
+        }
     }
     
-    // MARK: - Notification Item with Button
-    private func notificationItemWithButton(
-        icon: String,
-        iconColor: Color,
-        title: String,
-        desc: String,
-        time: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(iconColor.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    
-                    Image(systemName: icon)
-                        .font(.title3)
-                        .foregroundColor(iconColor)
-                }
-                
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(title)
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        Spacer()
-                        
-                        Text(time)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Text(desc)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineSpacing(3)
-                }
-            }
-            
-            Button {
-                print("Check-in ngay tapped")
-            } label: {
-                Text("Check-in ngay")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.blue)
-                    .cornerRadius(14)
-            }
+    var emptyView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "bell.slash").font(.system(size: 48)).foregroundColor(.gray.opacity(0.4))
+            Text("Không có thông báo").font(.subheadline).foregroundColor(.gray)
         }
-        .padding(16)
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
+        .frame(maxHeight: .infinity)
     }
-}
-
-#Preview {
-    NotificationView()
+    
+    // MARK: - Helpers
+    func iconName(_ type: String) -> String {
+        switch type {
+        case "checkin": return "checkmark.circle.fill"
+        case "checkout": return "clock.fill"
+        case "late_reminder": return "exclamationmark.circle.fill"
+        default: return "bell.fill"
+        }
+    }
+    
+    func iconColor(_ type: String) -> Color {
+        switch type {
+        case "checkin": return .green
+        case "checkout": return .gray
+        case "late_reminder": return .orange
+        default: return .blue
+        }
+    }
+    
+    func timeAgo(_ date: Date) -> String {
+        let d = Int(Date().timeIntervalSince(date))
+        if d < 60 { return "Vừa xong" }
+        if d < 3600 { return "\(d/60) phút trước" }
+        if d < 86400 { return "\(d/3600) giờ trước" }
+        let f = DateFormatter(); f.dateFormat = "dd/MM"; return f.string(from: date)
+    }
+    
+    func sectionLabel(_ date: Date) -> String {
+        let c = Calendar.current
+        if c.isDateInToday(date) { return "HÔM NAY" }
+        if c.isDateInYesterday(date) { return "HÔM QUA" }
+        let f = DateFormatter(); f.locale = Locale(identifier: "vi_VN"); f.dateFormat = "EEEE, dd/MM"
+        return f.string(from: date).uppercased()
+    }
 }

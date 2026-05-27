@@ -1,0 +1,442 @@
+import SwiftUI
+import FirebaseFirestore
+import FirebaseAuth
+
+class HomeViewModel: ObservableObject {
+    
+    // MARK: - Published
+    @Published var isCheckedIn: Bool = false
+    @Published var isCheckedOut: Bool = false
+    @Published var checkInTime: Date? = nil
+    @Published var checkOutTime: Date? = nil
+    @Published var isLoading: Bool = false
+    @Published var toastMessage: String = ""
+    @Published var showToast: Bool = false
+    @Published var toastSuccess: Bool = true
+    @Published var showCamera: Bool = false
+    @Published var cameraMode: CameraMode = .checkIn
+    @Published var remainingLeaveDays: Int = 0
+    @Published var workStartTime: String = "08:00"
+    @Published var workEndTime: String = "17:00"
+    @Published var currentQRToken: String = ""
+    
+    // MARK: - QR Check-in flow
+    @Published var showQRScanner: Bool = false
+    @Published var qrVerified: Bool = false
+    
+    enum CameraMode {
+        case checkIn
+        case checkOut
+    }
+    
+    // MARK: - Services
+    let locationService = LocationService.shared
+    private let attendanceService = AttendanceService.shared
+    private let cloudinaryService = CloudinaryService.shared
+    private let notificationService = NotificationService.shared
+    private let db = Firestore.firestore()
+    
+    private var attendanceListener: ListenerRegistration?
+    private var leaveBalanceListener: ListenerRegistration?
+    private var leaveBalanceItemListener: ListenerRegistration?
+    private var listeningUID: String?
+    private var authStateListener: AuthStateDidChangeListenerHandle?
+    static let shared = HomeViewModel()
+    
+    // MARK: - Init
+    init() {
+        setupAuthListener()
+        loadWorkSchedule()
+        loadCurrentQRToken()
+        startRealtimeAttendanceListener()
+        startLeaveBalanceListener()
+    }
+    // MARK: - Auth State Listener
+    private func setupAuthListener() {
+        authStateListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            guard let self = self else { return }
+            if let user = user {
+                print("User logged in: \(user.uid)")
+                self.setupListenersForCurrentUser()
+            } else {
+                print("User logged out")
+                self.resetAllData()
+            }
+        }
+    }
+    // MARK: - Work Schedule
+    func loadWorkSchedule() {
+        AttendanceService.shared.loadWorkSchedule { [weak self] success in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                let start = AttendanceService.shared.getWorkStartString()
+                let end = AttendanceService.shared.getWorkEndString()
+                
+                self.workStartTime = start
+                self.workEndTime   = end
+                
+            }
+        }
+    }
+    private func stopAllListeners() {
+        attendanceListener?.remove()
+        attendanceListener = nil
+        leaveBalanceListener?.remove()
+        leaveBalanceListener = nil
+        leaveBalanceItemListener?.remove()
+        leaveBalanceItemListener = nil
+        
+        // Remove date observer
+        if let observer = dateChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            dateChangeObserver = nil
+        }
+    }
+    
+    private var midnightTimer: Timer?
+    
+    // MARK: - Realtime Listener
+    private func startRealtimeAttendanceListener() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        
+        let userRef = db.document("users/\(uid)")
+        let today = todayString()
+        
+        // Remove listener cũ trước khi tạo mới
+        attendanceListener?.remove()
+        
+        attendanceListener = db.collection("attendance")
+            .whereField("id_user", isEqualTo: userRef)
+            .whereField("date", isEqualTo: today)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("Realtime attendance error: \(error.localizedDescription)")
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    if let doc = snapshot?.documents.first {
+                        self.updateFromDocument(doc)
+                    } else {
+                        self.resetDailyState()
+                    }
+                }
+            }
+        
+        // Bắt đầu theo dõi thay đổi ngày
+        startDateChangeObserver()
+    }
+    // MARK: - Update UI
+    private func updateFromDocument(_ doc: QueryDocumentSnapshot) {
+        let data = doc.data()
+        
+        if let checkIn = data["check_in"] as? Timestamp {
+            self.isCheckedIn = true
+            self.checkInTime = checkIn.dateValue()
+        } else {
+            self.isCheckedIn = false
+            self.checkInTime = nil
+        }
+        
+        if let checkOut = data["check_out"] as? Timestamp {
+            self.isCheckedOut = true
+            self.checkOutTime = checkOut.dateValue()
+        } else {
+            self.isCheckedOut = false
+            self.checkOutTime = nil
+        }
+    }
+
+    // MARK: - Theo dõi thay đổi ngày
+    private var dateChangeObserver: NSObjectProtocol?
+
+    private func startDateChangeObserver() {
+       
+        if let observer = dateChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
+        dateChangeObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.significantTimeChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+         
+            self.resetDailyState()
+            self.startRealtimeAttendanceListener()
+        }
+    }
+   
+    private func scheduleMidnightRestart() {
+        midnightTimer?.invalidate()
+        
+        let calendar = Calendar.current
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date())) else { return }
+        let interval = tomorrow.timeIntervalSinceNow
+        
+        midnightTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+          
+            DispatchQueue.main.async {
+                self.resetDailyState()
+                self.startRealtimeAttendanceListener()
+            }
+        }
+    }
+    
+    // MARK: - Cleanup
+    deinit {
+        stopAllListeners()
+        if let listener = authStateListener {
+            Auth.auth().removeStateDidChangeListener(listener)
+        }
+        attendanceService.stopListeningQRToken()
+    }
+    
+    public func todayString() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone.current
+        return f.string(from: Date())
+    }
+    
+    
+    func resetDailyState() {
+        isCheckedIn = false
+        isCheckedOut = false
+        checkInTime = nil
+        checkOutTime = nil
+    }
+    
+    // MARK: - Handle Tap
+    func handleCheckInTap() {
+        guard locationService.isAuthorized else {
+            locationService.requestLocationPermission()
+            return
+        }
+        guard locationService.isWithinRange else {
+            showMessage("Bạn đang ngoài phạm vi văn phòng\n\(locationService.distanceText)", success: false)
+            return
+        }
+        
+        
+        cameraMode = .checkIn
+        qrVerified = false
+        showQRScanner = true
+    }
+    
+    func handleCheckOutTap() {
+        guard locationService.isAuthorized else {
+            locationService.requestLocationPermission()
+            return
+        }
+        guard locationService.isWithinRange else {
+            showMessage("Bạn đang ngoài phạm vi văn phòng\n\(locationService.distanceText)", success: false)
+            return
+        }
+        
+        cameraMode = .checkOut
+        qrVerified = false
+        showQRScanner = true
+
+    }
+    
+    // MARK: - QR Token
+    func loadCurrentQRToken() {
+        attendanceService.startListeningQRToken{ [weak self] token in
+            guard let self = self, let token = token else { return }
+            DispatchQueue.main.async {
+                self.currentQRToken = token
+                print(" Loaded QR Token: \(token.prefix(20))...")
+            }
+        }
+    }
+
+    // MARK: - Xử lý kết quả QR scan
+    func onQRScanned(_ code: String) {
+        showQRScanner = false
+        
+        guard !code.isEmpty && code == currentQRToken else {
+            showMessage("Mã QR không hợp lệ hoặc đã hết hạn.", success: false)
+            return
+        }
+        
+        qrVerified = true
+        showCamera = true
+        markQRTokenAsUsed()
+    }
+
+    // MARK: - QR Token Management
+    private func markQRTokenAsUsed() {
+        guard !currentQRToken.isEmpty else { return }
+        
+        db.collection("qr_checkin")
+            .whereField("token", isEqualTo: currentQRToken)
+            .getDocuments { [weak self] snapshot, error in
+                guard let doc = snapshot?.documents.first else { return }
+                
+                doc.reference.updateData([
+                    "isUsed": true,
+                    "usedAt": Timestamp(date: Date())
+                ]) { _ in
+                    self?.loadCurrentQRToken()
+                }
+            }
+    }
+    
+    // MARK: - Nhận ảnh từ Camera
+    func onImageCaptured(_ image: UIImage) {
+        
+        if cameraMode == .checkIn && !qrVerified {
+            showMessage("Vui lòng quét mã QR trước khi chấm công", success: false)
+            return
+        }
+        
+        guard let location = locationService.userLocation else {
+            showMessage("Không lấy được vị trí GPS", success: false)
+            return
+        }
+        
+        isLoading = true
+     
+        
+        cloudinaryService.uploadAttendanceImage(image: image) { [weak self] success, imageURL in
+            guard let self = self else { return }
+            guard success, let url = imageURL else {
+                self.isLoading = false
+                self.showMessage("Upload ảnh thất bại!", success: false)
+                return
+            }
+            
+            if self.cameraMode == .checkIn {
+                self.attendanceService.checkIn(location: location, imgCheckinURL: url) { success, message in
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        self.showMessage(message, success: success)
+                        if success {
+                            self.notificationService.notifyCheckIn()
+                        }
+                    }
+                }
+            } else {
+                self.attendanceService.checkOut(imgCheckoutURL: url) { success, message in
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        self.showMessage(message, success: success)
+                        if success {
+                            self.notificationService.notifyCheckOut()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Public reset
+    func resetAllData() {
+        stopAllListeners()
+        listeningUID = nil
+        
+        isCheckedIn = false
+        isCheckedOut = false
+        checkInTime = nil
+        checkOutTime = nil
+        remainingLeaveDays = 0
+        qrVerified = false
+        currentQRToken = ""
+    }
+    
+    // MARK: - Public setup 
+    func setupListenersForCurrentUser() {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        guard listeningUID != uid else { return }
+        stopAllListeners()
+        listeningUID = uid
+        startRealtimeAttendanceListener()
+        startLeaveBalanceListener()
+        loadWorkSchedule()
+        loadCurrentQRToken()
+    }
+    
+    // MARK: - Toast
+    func showMessage(_ message: String, success: Bool) {
+        toastMessage = message
+        toastSuccess = success
+        withAnimation { showToast = true }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            withAnimation { self.showToast = false }
+        }
+    }
+    
+    // MARK: - Computed Properties
+    var statusText: String {
+        if isCheckedOut { return "Đã về" }
+        if isCheckedIn  { return "Đang làm việc" }
+        return "Chưa check-in"
+    }
+    
+    var statusColor: Color {
+        if isCheckedOut { return .gray }
+        if isCheckedIn  { return .green }
+        return .red
+    }
+    
+    var buttonTitle: String {
+        if isCheckedOut { return "Đã hoàn thành" }
+        if isCheckedIn  { return "CHECK-OUT" }
+        return "CHECK-IN"
+    }
+    
+    var buttonIcon: String {
+        if isCheckedOut { return "checkmark.seal.fill" }
+        if isCheckedIn  { return "arrow.left.square.fill" }
+        return "camera.fill"
+    }
+    
+    var checkInGradient: [Color] {
+        if isCheckedOut { return [.gray, .gray.opacity(0.7)] }
+        if isCheckedIn  { return [.red, .orange] }
+        if !locationService.isWithinRange { return [Color.gray.opacity(0.5), Color.gray.opacity(0.3)] }
+        return [Color.green, Color(red: 0.0, green: 0.7, blue: 0.4)]
+    }
+    
+    var totalHoursText: String {
+        guard let inTime = checkInTime else { return "0h 00m" }
+        let diff = Int((checkOutTime ?? Date()).timeIntervalSince(inTime))
+        return "\(diff / 3600)h \(String(format: "%02d", (diff % 3600) / 60))m"
+    }
+    func startLeaveBalanceListener(uid: String? = nil) {
+        guard let uid = uid ?? Auth.auth().currentUser?.uid else { return }
+        
+        leaveBalanceListener?.remove()
+        leaveBalanceItemListener?.remove()
+        
+        db.collection("leave_balance")
+            .whereField("id_user", isEqualTo: db.document("users/\(uid)"))
+            .limit(to: 1)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self,
+                      let balanceDoc = snapshot?.documents.first else { return }
+                
+          
+                self.leaveBalanceItemListener?.remove()
+                
+                self.leaveBalanceItemListener = balanceDoc.reference
+                    .collection("item")
+                    .limit(to: 1)
+                    .addSnapshotListener { [weak self] itemSnapshot, _ in
+                        guard let self = self,
+                              let itemDoc = itemSnapshot?.documents.first else { return }
+                        let data = itemDoc.data()
+                        DispatchQueue.main.async {
+                            self.remainingLeaveDays = data["remaining_days"] as? Int ?? 0
+                        }
+                    }
+            }
+    }
+}

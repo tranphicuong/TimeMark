@@ -1,88 +1,171 @@
-//
-//  HomeView.swift
-//  TimeMark
-//
-//  Created by cuong on 26/3/26.
-//
 
+
+import FirebaseAuth
 import SwiftUI
-import LocalAuthentication
-import CoreLocation
 
 struct HomeView: View {
 
-    // MARK: - State
-    @AppStorage("userName") var userName = "Trần Phi Cường"
+    @StateObject private var vm = HomeViewModel.shared
+    @AppStorage("userName") var userName = "Nhân viên"
+    @State private var currentDateString = ""
     @State private var currentTime = Date()
-    @State private var checkInTime: Date? = nil
-    @State private var checkOutTime: Date? = nil
-    @State private var isCheckedIn = false
-    @State private var isCheckedOut = false
-    @State private var showCheckInConfirm = false
-    @State private var showCheckOutConfirm = false
-    @State private var showFaceIDFailed = false
-    @State private var isWithinRange = false
-    @State private var distanceText = "Đang xác định vị trí..."
-    @State private var remainingLeaveDays = 12
+    @State private var avatarURL: String = ""
 
-    @StateObject private var locationManager = LocationManager()
+    
 
+    
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    let workStart = "08:00"
-    let workEnd = "17:00"
 
-    // MARK: - Body
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    headerView
-                    statusBadge
-                    clockView
-                    shiftInfoView
-                    checkInCard
-                    timeInfoCards
-                    totalHoursCard
-                    leaveInfoCard
-                    Spacer(minLength: 30)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-            }
-            .background(Color(.systemGray6).ignoresSafeArea())
-            .onReceive(timer) { _ in
-                currentTime = Date()
-            }
-            .onReceive(locationManager.$distance) { distance in
-                if let distance = distance {
-                    isWithinRange = distance <= Double(locationManager.officeRadius)
-                    if isWithinRange {
-                        distanceText = "Trong phạm vi văn phòng (\(Int(distance))m)"
-                    } else {
-                        distanceText = "Ngoài phạm vi — cách \(Int(distance))m"
+            ZStack(alignment: .bottom) {
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        headerView
+                        statusBadge
+                        clockView
+                        shiftInfoView
+                        checkInCard
+                        timeInfoCards
+                        totalHoursCard
+                        leaveInfoCard
+                        Spacer(minLength: 40)
                     }
-                } else {
-                    distanceText = "Đang xác định vị trí..."
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                }
+                .background(Color(.systemGray6).ignoresSafeArea())
+
+                // Toast
+                if vm.showToast {
+                    toastView
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, 20)
                 }
             }
-            .alert("Face ID thất bại", isPresented: $showFaceIDFailed) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Không thể xác minh danh tính. Vui lòng thử lại.")
+            .onReceive(timer) { _ in currentTime = Date()
+                checkForNewDay()
             }
-            .alert("Xác nhận check-in", isPresented: $showCheckInConfirm) {
-                Button("Huỷ", role: .cancel) {}
-                Button("Check-in") { authenticateAndCheckIn() }
-            } message: {
-                Text("Xác nhận check-in lúc \(formattedTime(Date())) bằng Face ID?")
+            .onAppear{
+                currentDateString = vm.todayString()
             }
-            .alert("Xác nhận check-out", isPresented: $showCheckOutConfirm) {
-                Button("Huỷ", role: .cancel) {}
-                Button("Check-out") { authenticateAndCheckOut() }
-            } message: {
-                Text("Xác nhận check-out lúc \(formattedTime(Date())) bằng Face ID?")
+            // Sheet camera
+            .sheet(isPresented: $vm.showQRScanner) {
+                      QRScannerView { code in
+                          vm.onQRScanned(code)
+                      }
+                  }
+                  .sheet(isPresented: $vm.showCamera) {
+                      CameraView { image in
+                          if let image = image {
+                              vm.onImageCaptured(image)
+                          }
+                      }
+                  }
+        }
+    }
+    private func checkForNewDay() {
+            let today = vm.todayString()
+            if today != currentDateString {
+                print("🔄 HomeView detected new day: \(today)")
+                currentDateString = today
+                // Yêu cầu ViewModel reset và refresh listener
+                vm.resetDailyState()
+                vm.setupListenersForCurrentUser()
             }
         }
+
+    // MARK: - Check-in Card
+    var checkInCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: vm.checkInGradient,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            VStack(spacing: 14) {		
+
+                // GPS badge
+                HStack(spacing: 6) {
+                    Image(systemName: vm.locationService.isWithinRange
+                          ? "location.fill" : "location.slash.fill")
+                        .font(.caption)
+                    Text(vm.locationService.distanceText)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.2))
+                .cornerRadius(20)
+
+                // Icon / Loading
+                if vm.isLoading {
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(1.5)
+                        .frame(height: 50)
+                } else {
+                    Image(systemName: checkInIcon)
+                        .font(.system(size: 50))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+
+                // Label
+                Text(vm.isCheckedOut ? "Đã hoàn thành hôm nay" :
+                     vm.isCheckedIn  ? "Nhấn để CHECK-OUT" :
+                     vm.locationService.isWithinRange ? "Nhấn để CHECK-IN" : "Ngoài phạm vi văn phòng")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(vm.isLoading ? .white.opacity(0.5) : .white)
+                    .multilineTextAlignment(.center)
+
+                // Gợi ý nhỏ
+                if !vm.isCheckedOut && !vm.isLoading {
+                    Text(vm.locationService.isWithinRange
+                         ? (vm.isCheckedIn ? "Nhấn để check-out" : "Nhấn bất kỳ đâu để mở camera")
+                         : "Di chuyển đến văn phòng để chấm công")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .padding(.vertical, 28)
+            .padding(.horizontal, 16)
+        }
+        .frame(height: 250)
+        // Toàn bộ card nhấn được
+        .contentShape(Rectangle())
+        .onTapGesture {
+            handleCardTap()
+        }
+        .scaleEffect(vm.isLoading ? 1.0 : 1.0)
+        .animation(.spring(response: 0.2), value: vm.isLoading)
+    }
+
+    // MARK: - Xử lý tap
+    private func handleCardTap() {
+        guard !vm.isLoading && !vm.isCheckedOut else { return }
+
+        if !vm.isCheckedIn {
+            vm.handleCheckInTap()
+        } else {
+            vm.handleCheckOutTap()
+        }
+    }
+
+    // MARK: - Icon theo trạng thái
+    var checkInIcon: String {
+        if vm.isCheckedOut { return "checkmark.seal.fill" }
+        if vm.isCheckedIn  { return "arrow.left.circle.fill" }
+        if !vm.locationService.isWithinRange { return "location.slash.fill" }
+        return "camera.fill"
     }
 
     // MARK: - Header
@@ -90,12 +173,15 @@ struct HomeView: View {
         HStack {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 46, height: 46)
-                    Image(systemName: "person.fill")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 20))
+                    AvatarView(
+                        size: 46,
+                        avatarURL: avatarURL
+                    )
+                }
+                .onAppear {
+                    UserService.shared.loadAvatar{
+                        url in avatarURL  =  url
+                    }
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("XIN CHÀO,")
@@ -115,16 +201,16 @@ struct HomeView: View {
     var statusBadge: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(statusColor)
+                .fill(vm.statusColor)
                 .frame(width: 8, height: 8)
-            Text(statusText)
+            Text(vm.statusText)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .foregroundColor(statusColor)
+                .foregroundColor(vm.statusColor)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .background(statusColor.opacity(0.1))
+        .background(vm.statusColor.opacity(0.1))
         .cornerRadius(20)
     }
 
@@ -140,15 +226,17 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Shift Info
+    // MARK: - Ca làm
     var shiftInfoView: some View {
         VStack(spacing: 4) {
             Text("Ca làm việc hôm nay")
                 .font(.caption)
                 .foregroundColor(.gray)
-            Text("\(workStart) - \(workEnd)")
+            
+            Text("\(vm.workStartTime) - \(vm.workEndTime)")
                 .font(.subheadline)
                 .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -156,93 +244,26 @@ struct HomeView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Check-in Card
-    var checkInCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(
-                    LinearGradient(
-                        colors: checkInGradient,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            VStack(spacing: 14) {
-                // GPS status
-                HStack(spacing: 6) {
-                    Image(systemName: isWithinRange ? "location.fill" : "location.slash.fill")
-                        .font(.caption)
-                    Text(distanceText)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(Color.black.opacity(0.2))
-                .cornerRadius(20)
-
-                // Face ID icon
-                Image(systemName: isCheckedOut ? "checkmark.seal.fill" : "faceid")
-                    .font(.system(size: 44))
-                    .foregroundColor(.white.opacity(0.9))
-
-                // Nút check-in / check-out
-                Button(action: {
-                    if !isCheckedIn && isWithinRange {
-                        showCheckInConfirm = true
-                    } else if isCheckedIn && !isCheckedOut && isWithinRange {
-                        showCheckOutConfirm = true
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: buttonIcon)
-                            .font(.system(size: 16, weight: .bold))
-                        Text(buttonTitle)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                    }
-                    .foregroundColor(canCheckInOut ? .white : .white.opacity(0.4))
-                }
-                .disabled(!canCheckInOut)
-
-                // Gợi ý
-                if !isCheckedOut {
-                    Text(isWithinRange ? "Xác thực Face ID để tiếp tục" : "Cần đến văn phòng để chấm công")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.75))
-                }
-            }
-            .padding(.vertical, 28)
-        }
-        .frame(height: 240)
-    }
-
-    // MARK: - Giờ vào / Giờ ra
+    // MARK: - Giờ vào / ra
     var timeInfoCards: some View {
         HStack(spacing: 12) {
-            timeCard(icon: "arrow.right.square.fill", iconColor: Color.purple.opacity(0.15), iconFg: .purple, title: "Giờ vào", value: checkInTime != nil ? formattedTime(checkInTime!) : "-:-")
-            timeCard(icon: "arrow.left.square.fill", iconColor: Color.orange.opacity(0.15), iconFg: .orange, title: "Giờ ra", value: checkOutTime != nil ? formattedTime(checkOutTime!) : "-:-")
+            timeCard(icon: "arrow.right.square.fill", iconColor: Color.purple.opacity(0.15), iconFg: .purple,
+                     title: "Giờ vào", value: vm.checkInTime != nil ? formattedTime(vm.checkInTime!) : "-:-")
+            timeCard(icon: "arrow.left.square.fill", iconColor: Color.orange.opacity(0.15), iconFg: .orange,
+                     title: "Giờ ra", value: vm.checkOutTime != nil ? formattedTime(vm.checkOutTime!) : "-:-")
         }
     }
 
+    @ViewBuilder
     func timeCard(icon: String, iconColor: Color, iconFg: Color, title: String, value: String) -> some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(iconColor)
-                    .frame(width: 40, height: 40)
-                Image(systemName: icon)
-                    .foregroundColor(iconFg)
+                RoundedRectangle(cornerRadius: 10).fill(iconColor).frame(width: 40, height: 40)
+                Image(systemName: icon).foregroundColor(iconFg)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                Text(value)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                Text(title).font(.caption).foregroundColor(.gray)
+                Text(value).font(.subheadline).fontWeight(.semibold)
             }
             Spacer()
         }
@@ -252,24 +273,16 @@ struct HomeView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Tổng giờ làm
+    // MARK: - Tổng giờ
     var totalHoursCard: some View {
         HStack(spacing: 14) {
             ZStack {
-                Circle()
-                    .fill(Color.blue)
-                    .frame(width: 42, height: 42)
-                Image(systemName: "clock.fill")
-                    .foregroundColor(.white)
+                Circle().fill(Color.blue).frame(width: 42, height: 42)
+                Image(systemName: "clock.fill").foregroundColor(.white)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Tổng giờ làm")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
-                Text(totalHoursText)
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                Text("Tổng giờ làm").font(.caption).foregroundColor(.white.opacity(0.8))
+                Text(vm.totalHoursText).font(.title3).fontWeight(.bold).foregroundColor(.white)
             }
             Spacer()
         }
@@ -279,115 +292,88 @@ struct HomeView: View {
     }
 
     // MARK: - Phép năm
+
     var leaveInfoCard: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                // Icon
                 ZStack {
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: 12)
                         .fill(Color.blue.opacity(0.1))
-                        .frame(width: 40, height: 40)
+                        .frame(width: 48, height: 48)
                     Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 24))
                         .foregroundColor(.blue)
                 }
-                VStack(alignment: .leading, spacing: 2) {
+                
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Phép năm còn lại")
                         .font(.caption)
-                        .foregroundColor(.gray)
-                    Text("\(remainingLeaveDays) ngày")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    
+                    Text("\(vm.remainingLeaveDays) ngày")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
                 }
+                
+                Spacer()
             }
-            Spacer()
-            NavigationLink(destination: LeaveRequestView()) {
-                HStack(spacing: 6) {
-                    Image(systemName: "doc.text.fill")
-                        .font(.caption)
-                    Text("Gửi yêu cầu")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+            
+  
+            HStack(spacing: 12) {
+                // Nút Gửi yêu cầu
+                NavigationLink(destination: LeaveRequestView()) {
+                    HStack {
+                        Image(systemName: "doc.text.fill")
+                        Text("Gửi yêu cầu")
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue)
+                    .cornerRadius(14)
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color.blue)
-                .cornerRadius(12)
+                
+                // Nút Xem lịch sử
+                NavigationLink(destination: LeaveRequestListView()) {
+                    HStack {
+                        Image(systemName: "list.bullet")
+                        Text("Xem lịch sử")
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.blue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(14)
+                }
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color.white)
-        .cornerRadius(14)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
     }
-
-    // MARK: - Face ID
-    func authenticateAndCheckIn() {
-        let context = LAContext()
-        var error: NSError?
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                   localizedReason: "Xác nhận check-in bằng Face ID") { success, _ in
-                DispatchQueue.main.async {
-                    if success { doCheckIn() }
-                    else { showFaceIDFailed = true }
-                }
-            }
-        } else {
-            // Simulator không có Face ID → check-in thẳng để test
-            doCheckIn()
+    // MARK: - Toast
+    var toastView: some View {
+        HStack(spacing: 10) {
+            Image(systemName: vm.toastSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundColor(vm.toastSuccess ? .green : .red)
+            Text(vm.toastMessage)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
         }
-    }
-
-    func authenticateAndCheckOut() {
-        let context = LAContext()
-        var error: NSError?
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
-            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                   localizedReason: "Xác nhận check-out bằng Face ID") { success, _ in
-                DispatchQueue.main.async {
-                    if success { doCheckOut() }
-                    else { showFaceIDFailed = true }
-                }
-            }
-        } else {
-            doCheckOut()
-        }
-    }
-
-    func doCheckIn() { checkInTime = Date(); isCheckedIn = true }
-    func doCheckOut() { checkOutTime = Date(); isCheckedOut = true }
-
-    // MARK: - Computed
-    var canCheckInOut: Bool { isWithinRange && !isCheckedOut }
-    var statusText: String {
-        if isCheckedOut { return "Đã về" }
-        if isCheckedIn  { return "Đang làm việc" }
-        return "Chưa check-in"
-    }
-    var statusColor: Color {
-        if isCheckedOut { return .gray }
-        if isCheckedIn  { return .green }
-        return .red
-    }
-    var buttonTitle: String {
-        if isCheckedOut { return "Đã hoàn thành" }
-        if isCheckedIn  { return "CHECK-OUT" }
-        return "CHECK-IN"
-    }
-    var buttonIcon: String {
-        if isCheckedOut { return "checkmark.seal.fill" }
-        if isCheckedIn  { return "arrow.left.square.fill" }
-        return "faceid"
-    }
-    var checkInGradient: [Color] {
-        if isCheckedOut  { return [.gray, .gray.opacity(0.7)] }
-        if isCheckedIn   { return [.red, .orange] }
-        if !isWithinRange { return [Color.gray.opacity(0.5), Color.gray.opacity(0.3)] }
-        return [.green, Color(red: 0.0, green: 0.7, blue: 0.4)]
-    }
-    var totalHoursText: String {
-        guard let inTime = checkInTime else { return "0h 00m" }
-        let diff = Int((checkOutTime ?? Date()).timeIntervalSince(inTime))
-        return "\(diff / 3600)h \(String(format: "%02d", (diff % 3600) / 60))m"
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(Color(.systemBackground))
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.12), radius: 12, x: 0, y: 4)
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Formatters
@@ -402,30 +388,5 @@ struct HomeView: View {
     }
     func formattedTime(_ date: Date) -> String {
         let f = DateFormatter(); f.dateFormat = "HH:mm"; return f.string(from: date)
-    }
-}
-
-// MARK: - Location Manager
-class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private let manager = CLLocationManager()
-    @Published var distance: Double? = nil
-
-    // ← Đổi tọa độ này thành địa chỉ công ty thật
-    let officeLatitude  = 10.7769
-    let officeLongitude = 106.7009
-    let officeRadius    = 100 // mét
-
-    override init() {
-        super.init()
-        manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyBest
-        manager.requestWhenInUseAuthorization()
-        manager.startUpdatingLocation()
-    }
-
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        guard let userLocation = locations.last else { return }
-        let officeLocation = CLLocation(latitude: officeLatitude, longitude: officeLongitude)
-        distance = userLocation.distance(from: officeLocation)
     }
 }

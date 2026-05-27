@@ -1,7 +1,8 @@
 
 import SwiftUI
-
+    
 struct EmployeeTabView: View {
+    @StateObject var noti = NotificationService.shared
     var body: some View {
         TabView {
             HomeView()
@@ -20,7 +21,7 @@ struct EmployeeTabView: View {
                 .tabItem {
                     Image(systemName: "bell.fill")
                     Text("Thông báo")
-                }
+                }.badge(noti.unreadCount)
 
             ProfileView()
                 .tabItem {

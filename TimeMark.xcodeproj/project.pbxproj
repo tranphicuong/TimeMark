@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		18DF34BD2FC5216500D7BE91 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 18DF34BC2FC5216500D7BE91 /* FirebaseMessaging */; };
 		5E8898B52F800669004FD72F /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 5E8898B42F800669004FD72F /* FirebaseAuth */; };
 		5E8898B72F800669004FD72F /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 5E8898B62F800669004FD72F /* FirebaseFirestore */; };
 /* End PBXBuildFile section */
@@ -15,9 +16,22 @@
 		5E37FBBC2F71B2AF0011A51D /* TimeMark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TimeMark.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		18D222C12FC7128D000A3539 /* Exceptions for "TimeMark" folder in "TimeMark" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5E37FBBB2F71B2AF0011A51D /* TimeMark */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E37FBBE2F71B2AF0011A51D /* TimeMark */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				18D222C12FC7128D000A3539 /* Exceptions for "TimeMark" folder in "TimeMark" target */,
+			);
 			path = TimeMark;
 			sourceTree = "<group>";
 		};
@@ -28,6 +42,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				18DF34BD2FC5216500D7BE91 /* FirebaseMessaging in Frameworks */,
 				5E8898B52F800669004FD72F /* FirebaseAuth in Frameworks */,
 				5E8898B72F800669004FD72F /* FirebaseFirestore in Frameworks */,
 			);
@@ -36,10 +51,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		18DF34BB2FC5216500D7BE91 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		5E37FBB32F71B2AF0011A51D = {
 			isa = PBXGroup;
 			children = (
 				5E37FBBE2F71B2AF0011A51D /* TimeMark */,
+				18DF34BB2FC5216500D7BE91 /* Frameworks */,
 				5E37FBBD2F71B2AF0011A51D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -74,6 +97,7 @@
 			packageProductDependencies = (
 				5E8898B42F800669004FD72F /* FirebaseAuth */,
 				5E8898B62F800669004FD72F /* FirebaseFirestore */,
+				18DF34BC2FC5216500D7BE91 /* FirebaseMessaging */,
 			);
 			productName = TimeMark;
 			productReference = 5E37FBBC2F71B2AF0011A51D /* TimeMark.app */;
@@ -264,6 +288,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TimeMark/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Ứng dụng cần truy cập camera để chụp ảnh check-in";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "App cần vị trí để chấm công";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = NSPhotoLibraryUsageDescription;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -304,6 +332,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TimeMark/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Ứng dụng cần truy cập camera để chụp ảnh check-in";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "App cần vị trí để chấm công";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = NSPhotoLibraryUsageDescription;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -366,6 +398,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		18DF34BC2FC5216500D7BE91 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5E8898B32F800669004FD72F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		5E8898B42F800669004FD72F /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5E8898B32F800669004FD72F /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
