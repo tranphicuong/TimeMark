@@ -41,7 +41,11 @@ struct FirestoreTimestamp: Codable {
     let _seconds: Int
     let _nanoseconds: Int
 }
-
+extension FirestoreTimestamp {
+    var date: Date {
+        Date(timeIntervalSince1970: TimeInterval(_seconds))
+    }
+}
 
 struct LeaveRequestEmployee: Identifiable, Codable {
     @DocumentID var id: String?

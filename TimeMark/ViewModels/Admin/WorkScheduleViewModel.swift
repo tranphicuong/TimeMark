@@ -17,36 +17,22 @@ class WorkScheduleViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var showError = false
     
-    func saveWorkSchedule(checkIn: Date, checkOut: Date, lateAfterMinute: Int) {
-        guard let id = workSchedule?.id else {
-            print("❌ [WorkScheduleVM] workSchedule?.id is NIL - cannot save")
-            return
-        }
-
+    func saveWorkSchedule(checkIn: String, checkOut: String, lateAfterMinute: Int) {
+        guard let id = workSchedule?.id else { return }
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.timeZone = TimeZone.current
-
+        print("🕐 checkIn: \(checkIn), checkOut: \(checkOut)")
+        
         isLoading = true
-        
         WorkScheduleService.shared.updateWorkSchedule(
             id: id,
-            checkIn: formatter.string(from: checkIn),
-            checkOut: formatter.string(from: checkOut),
+            checkIn: checkIn,
+            checkOut: checkOut,
             lateAfterMinute: lateAfterMinute
         ) { [weak self] success in
             DispatchQueue.main.async {
                 self?.isLoading = false
-                print("📩 [WorkScheduleVM] API response - success: \(success)")
-                if success {
-                    self?.showSuccess = true
-                    print("✅ [WorkScheduleVM] Update successful")
-                } else {
-                    self?.errorMessage = "Cập nhật thất bại"
-                    self?.showError = true
-                    print("❌ [WorkScheduleVM] Update failed")
-                }
+                if success { self?.showSuccess = true }
+                else { self?.errorMessage = "Cập nhật thất bại"; self?.showError = true }
             }
         }
     }

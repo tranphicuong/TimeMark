@@ -48,6 +48,25 @@ class LeaveRequestService
         }
     }
     
+    //fetch history
+    func fetchHistory(completion: @escaping ([LeaveHistory]) -> Void) {
+        APIService.shared.request(
+            endpoint: "/api/leave_request/history",
+            method: "GET") { data, error in
+            guard let data = data, error == nil else {
+                completion([])
+                return
+            }
+            do {
+                let result = try JSONDecoder().decode(LeaveHistoryResponse.self, from: data)
+                completion(result.data)
+            } catch {
+                print("history decode error:", error)
+                completion([])
+            }
+        }
+    }
+    
     func updateLeaveStatus(
         id: String,
         status: ApprovalStatus,

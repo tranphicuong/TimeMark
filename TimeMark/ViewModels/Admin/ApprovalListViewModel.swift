@@ -13,6 +13,18 @@ class ApprovalListViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var pendingCount: Int = 0
     @Published var errorMessage: String? = nil
+    @Published var histories: [LeaveHistory] = []
+    @Published var isLoadingHistory = false
+
+    func fetchHistory() {
+        isLoadingHistory = true
+        LeaveRequestService.shared.fetchHistory { [weak self] data in
+            DispatchQueue.main.async {
+                self?.isLoadingHistory = false
+                self?.histories = data.sorted { $0.created_at._seconds > $1.created_at._seconds } // mới nhất lên trên
+            }
+        }
+    }
     func fetchRequests() {
         isLoading = true
         errorMessage = nil

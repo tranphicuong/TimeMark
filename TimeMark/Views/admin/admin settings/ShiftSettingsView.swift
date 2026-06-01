@@ -12,7 +12,39 @@ struct ShiftSettingsView: View {
     @State private var showConfirm = false
     @State private var showError = false
     @State private var errorMessage = ""
-    
+    func formatUTCTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone(identifier: "UTC")!
+        return formatter.string(from: date)
+    }
+    func timeStringToDate(_ str: String) -> Date {
+        var utcCalendar = Calendar.current
+        utcCalendar.timeZone = TimeZone(identifier: "UTC")!
+        let parts = str.split(separator: ":").map { Int($0) ?? 0 }
+        var comps = DateComponents()
+        comps.year = 2000; comps.month = 1; comps.day = 1
+        comps.hour = parts.count > 0 ? parts[0] : 0
+        comps.minute = parts.count > 1 ? parts[1] : 0
+        return utcCalendar.date(from: comps) ?? Date()
+    }
+    func normalizeToLocal(_ date: Date) -> Date {
+        var utcCalendar = Calendar.current
+        utcCalendar.timeZone = TimeZone(identifier: "UTC")!
+        
+        let hour = utcCalendar.component(.hour, from: date)
+        let minute = utcCalendar.component(.minute, from: date)
+        
+        // Tạo Date với UTC calendar → hour/minute đúng trong UTC
+        var components = DateComponents()
+        components.year = 2000
+        components.month = 1
+        components.day = 1
+        components.hour = hour
+        components.minute = minute
+        
+        return utcCalendar.date(from: components) ?? date  // ← utcCalendar, không phải Calendar.current
+    }
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -134,8 +166,8 @@ struct ShiftSettingsView: View {
         }
         .onChange(of: viewModel.workSchedule) { schedule in
             guard let schedule = schedule else { return }
-            startDate = schedule.checkInDate
-            endDate = schedule.checkOutDate
+            startDate = timeStringToDate(schedule.check_in_time)   // ← thay checkInDate
+            endDate = timeStringToDate(schedule.check_out_time)    // ← thay checkOutDate
             lateLimit = "\(schedule.late_after_minute)"
         }
         
@@ -165,10 +197,12 @@ struct ShiftSettingsView: View {
             Button("Huỷ", role: .cancel) {}
             Button("Xác nhận") {
                 viewModel.saveWorkSchedule(
-                    checkIn: startDate,
-                    checkOut: endDate,
+                    checkIn: formatUTCTime(startDate),
+                    checkOut: formatUTCTime(endDate),
                     lateAfterMinute: Int(lateLimit) ?? 15
                 )
+                print(formatUTCTime(startDate))
+                print(formatUTCTime(endDate))
             }
         } message: {
             Text("Bạn có chắc muốn lưu cài đặt này?")
@@ -182,12 +216,7 @@ struct ShiftSettingsView: View {
             showError = true
             return
         }
-        
-        if startDate >= endDate {
-            errorMessage = "Giờ kết thúc phải lớn hơn giờ bắt đầu"
-            showError = true
-            return
-        }
+
         
         showConfirm = true
     }
@@ -211,15 +240,12 @@ struct CustomTimePickerField: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Text(label)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.gray)
             
             Button {
-                withAnimation {
-                    showPicker.toggle()
-                }
+                withAnimation { showPicker.toggle() }
             } label: {
                 HStack {
                     Text(formatTime(time))
@@ -241,6 +267,7 @@ struct CustomTimePickerField: View {
                 )
                 .datePickerStyle(.wheel)
                 .labelsHidden()
+                .environment(\.timeZone, TimeZone(identifier: "UTC")!) // ← thêm dòng này
             }
         }
     }
@@ -248,6 +275,7 @@ struct CustomTimePickerField: View {
     func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "hh:mm a"
+        formatter.timeZone = TimeZone(identifier: "UTC")! // ← thêm dòng này
         return formatter.string(from: date)
     }
 }

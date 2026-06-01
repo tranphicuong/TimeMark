@@ -16,9 +16,20 @@ class WorkScheduleService {
                 completion(nil)
                 return
             }
-            let response = try? JSONDecoder().decode(WorkScheduleResponse.self, from: data)
-            completion(response?.data)
-
+            
+            // Log raw JSON
+            if let json = String(data: data, encoding: .utf8) {
+                print("📦 Raw JSON: \(json)")
+            }
+            
+            do {
+                let response = try JSONDecoder().decode(WorkScheduleResponse.self, from: data)
+                print("✅ Decoded: \(String(describing: response.data))")
+                completion(response.data)
+            } catch {
+                print("❌ Decode error: \(error)")
+                completion(nil)
+            }
         }
     }
     
@@ -29,13 +40,14 @@ class WorkScheduleService {
         lateAfterMinute: Int,
         completion: @escaping (Bool) -> Void
     ) {
-        
+        print("service: in \(checkIn), out \(checkOut)")
         
         let body: [String: Any] = [
             "check_in_time":checkIn,
             "check_out_time": checkOut,
-            "late_after_minute": lateAfterMinute
-        ]
+            "late_after_minute": lateAfterMinute,
+            "early_leave_minute": lateAfterMinute
+        ]     
         
         APIService.shared.request(
             endpoint: "/api/work_schedule/\(id)",

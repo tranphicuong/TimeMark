@@ -7,6 +7,8 @@ struct ApprovalListView: View {
     @State private var selectedRequestId: String?
     @State private var noteText = ""
     @State private var selectedStatus: ApprovalStatus = .pending
+    @State private var showHistory = false
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
@@ -37,6 +39,20 @@ struct ApprovalListView: View {
                                 .foregroundColor(.blue)
                         }
                         .padding(.horizontal, 16)
+                        Button(action: { showHistory = true }) {
+                            HStack {
+                                Image(systemName: "clock.arrow.circlepath")
+                                Text("Lịch sử phê duyệt")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                        }
+                        .padding(.top, 4)
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.blue.opacity(0.05))
@@ -106,6 +122,11 @@ struct ApprovalListView: View {
             ) {
                 handleAction()
             }
+        }
+        .sheet(isPresented: $showHistory) {
+            ApprovalHistorySheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
         }
     }
     
